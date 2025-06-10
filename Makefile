@@ -1,22 +1,50 @@
-CFLAGS = -Wall -Wextra -lm -lSDL2 -lSDL2_ttf
+CFLAGS = -Wall -Wextra -lm -std=c99
 CCHECKS = -fsanitize=address
 
-mesher: build_mesher run_mesher clean_mesher  
+main: build_mesher build_main 
+	@echo [INFO] linking
+	@gcc ./build/main.o ./build/mesher.o $(CFLAGS) -o ./build/main
+
+	@echo
+	./build/main $(IN_FILE)
+
+	@echo
+	@echo [INFO] removing build files
+	rm -r ./build/main ./build/main.o ./build/mesher.o
+
+	@echo
 	@echo [INFO] done
 
-build_mesher: mesher.c
-	@echo [INFO] building
-	@gcc ./mesher.c $(CFLAGS) -o mesher
+build_main: 
+	@echo [INFO] building main
+	@gcc -c ./src/main.c $(CFLAGS) -o ./build/main.o
 
-run_mesher:
+build_mesher: ./src/mesher.c
+	@echo [INFO] building mesher
+	@gcc -c ./src/mesher.c $(CFLAGS) -o ./build/mesher.o
+
+
+debug_main: debug_build_mesher debug_build_main
+	@echo [INFO] linking
+	@gcc ./build/main.o ./build/mesher.o $(CFLAGS) -o ./build/main
+
+	gdb ./build/main
+
 	@echo
-	./mesher $(IN_FILE) $(OUT_DIR)
+	@echo [INFO] removing build files
+	rm -r ./build/main ./build/main.o ./build/mesher.o
 
-clean_mesher:
 	@echo
-	rm mesher
+	@echo [INFO] done
 
-debug_build_mesher: mesher.c
-	@gcc ./mesher.c $(CFLAGS) -g -o mesher
-# valgrind -s --leak-check=full ./mesher
+debug_build_main: 
+	@echo [INFO] building main
+	@gcc -c ./src/main.c $(CFLAGS) -ggdb -o ./build/main.o
+
+debug_build_mesher: ./src/mesher.c
+	@echo [INFO] building mesher
+	@gcc -c ./src/mesher.c $(CFLAGS) -ggdb -o ./build/mesher.o
+
+
+# valgrind -s --leak-check=full ./build/mesher
 # cloc --exclude-lang=JSON,make .

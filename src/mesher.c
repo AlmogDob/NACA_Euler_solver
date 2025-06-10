@@ -1,128 +1,13 @@
-/* example input file:
-NACA
-0012
-
-i_max
-50
-
-j_max
-25
-
-num_points_on_airfoil
-31
-
-delta_y
-0.02
-
-XSF
-1.15
-
-YSF
-1.15
-
-r
-0.001
-
-omega
-0.1
-
-phi
--1
-
-psi
--1
-*/
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <math.h>
-#include <assert.h>
-#include <stdlib.h>
-
-#define MAXDIR 100
-#define MAXWORD 100
-#define PI 3.14159265359
-#define dprintSTRING(expr) printf(#expr " = %s\n", expr)    /* macro for easy debuging*/
-#define dprintINT(expr) printf(#expr " = %d\n", expr)
-#define dprintF(expr) printf(#expr " = %g\n", expr)
-#define dprintD(expr) printf(#expr " = %g\n", expr)
-
-typedef struct {
-    double x;
-    double y;
-} Vec2;
-
-void read_input(char *dir);
-void output_solution(char *dir, double *data);
-int offset2d(int i, int j, int ni);
-void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat,
-                double *beta_vals_mat, double *gama_vals_mat,
-                double *psi_vals_mat,double *phi_vals_mat);
-void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat);
-void airfoil(double *x_value, double *y_value, double x, int i);
-void interpulat_mat(double *x_vals_mat, char diraction);
-double first_deriv(double *mat, char diraction, int i, int j);
-double second_deriv(double *mat, char diraction, int i, int j);
-void alpha_beta_gama(double *alpha_vals_mat, double *beta_vals_mat,
-                     double *gama_vals_mat, double *x_vals_mat, double *y_vals_mat);
-void psi_phi(double *psi_vals_mat, double *phi_vals_mat,
-             double *x_vals_mat, double *y_vals_mat);
-void copy_mat(double *dst, double *src);
-void copy_row_to_mat(double *dst, double *src, int row_num);
-void copy_col_to_mat(double *dst, double *src, int col_num);
-double L_x(double *x_vals_mat, double *alpha_vals_mat,
-           double *phi_vals_mat, double *beta_vals_mat,
-           double *gama_vals_mat, double *psi_vals_mat, int i, int j);
-double L_y(double *y_vals_mat, double *alpha_vals_mat,
-           double *phi_vals_mat, double *beta_vals_mat,
-           double *gama_vals_mat, double *psi_vals_mat, int i, int j);
-int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
-           double *y_vals_mat, double *alpha_vals_mat, double *phi_vals_mat,
-           double *beta_vals_mat, double *gama_vals_mat,
-           double *psi_vals_mat, double *A, double *B,
-           double *C,  double *D, double *temp_row);
-int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
-           double *fy_vals_mat, double *gama_vals_mat, double *A,
-           double *B, double *C, double *D, double *temp_row);
-void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j);
-void LHS_sweep2(double *A, double *B, double *C, double *alpha_vals_mat, int i);
-void RHS_sweep1_x(double *D, double *x_vals_mat, double *alpha_vals_mat,
-                double *phi_vals_mat, double *beta_vals_mat,
-                double *gama_vals_mat, double *psi_vals_mat, int j);
-void RHS_sweep2_x(double *D,double *fx_vals_mat, int j);
-void RHS_sweep1_y(double *D, double *y_vals_mat, double *alpha_vals_mat,
-                double *phi_vals_mat, double *beta_vals_mat,
-                double *gama_vals_mat, double *psi_vals_mat, int j);
-void RHS_sweep2_y(double *D,double *fy_vals_mat, int i);
-void BC_sweep1(double *A, double *B, double *C, double *D);
-void BC_sweep2(double *A, double *B, double *C, double *D);
-int tridiag(double *a, double *b, double *c, double *d,
-            double *u, int is, int ie);
-Vec2 step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
-         double *fy_vals_mat, double *x_vals_mat_current,
-         double *x_vals_mat_next, double *y_vals_mat_current,
-         double *y_vals_mat_next, double *alpha_vals_mat,
-         double *phi_vals_mat, double *beta_vals_mat,
-         double *gama_vals_mat, double *psi_vals_mat,
-         double *A, double *B, double *C, double *D, double *temp_row);
-void mat_print_to_file(FILE *fp, double *data);
-void mat_print(double *data);
-double calculate_max_L_x(double *x_vals_mat, double *alpha_vals_mat,
-           double *phi_vals_mat, double *beta_vals_mat,
-           double *gama_vals_mat, double *psi_vals_mat);
-double calculate_max_L_y(double *y_vals_mat, double *alpha_vals_mat,
-           double *phi_vals_mat, double *beta_vals_mat,
-           double *gama_vals_mat, double *psi_vals_mat);
+#include "mesher.h"
 
 /* Input variables */
 double delta_x, delta_y, XSF, YSF, r, omega, psi_valuse = NAN, phi_valuse = NAN;
 int NACA, i_max, j_max, i_TEL, i_LE, i_TEU, i_min = 0, j_min = 0;
 
-
-int main(int argc, char const *argv[])
+int create_mesh(double **x_mat, double **y_mat, char *input_file)
 {
-    /* decleraitons */
-    char input_dir[MAXDIR], temp_word[MAXWORD];
+    /* declarations */
+    char temp_word[MAXWORD];
     int i_index, j_index;
     double *x_vals_mat_init, *y_vals_mat_init, *x_vals_mat_current,
            *y_vals_mat_current, *x_vals_mat_next, *y_vals_mat_next,
@@ -132,26 +17,16 @@ int main(int argc, char const *argv[])
     /* matrix diaganosl for different sweeps */
     double *A, *B, *C, *D, *temp_row;
     Vec2 result, first_result;
-    FILE *Ls_fp = fopen("./matrices/Ls_valuse", "wt");
-
-    /*------------------------------------------------------------*/
-
-    /* Geting the input and output directories */
-    if (--argc != 2) {
-        fprintf(stderr, "ERROR: not right usage\nUsage: main 'input dir' 'output dir'\n");
-        return -1;
-    }
-
-    strncpy(input_dir, (*(++argv)), MAXDIR);
-
-    if (input_dir[MAXDIR-1] != '\0') {
-        fprintf(stderr, "Error: input too long\n");
-        return -1;
+    FILE *Ls_fp = fopen("./matrices/Ls_valuse.txt", "wt");
+    if (!Ls_fp) {
+        fprintf(stderr, "%s:%d: [ERROR] unable to open file", __FILE__, __LINE__);
+        exit(1);
     }
 
     /*------------------------------------------------------------*/
 
-    read_input(input_dir);
+
+    read_input(input_file);
 
     /*------------------------------------------------------------*/
 
@@ -298,7 +173,6 @@ int main(int argc, char const *argv[])
     copy_mat(y_vals_mat_next, y_vals_mat_init);
 
     for (i_index = 0; i_index < 1e5; i_index++) {
-    // for (i_index = 0; i_index < 1; i_index++) {
         result = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat,
                        x_vals_mat_current, x_vals_mat_next, y_vals_mat_current,
                        y_vals_mat_next, alpha_vals_mat, phi_vals_mat,
@@ -337,6 +211,9 @@ int main(int argc, char const *argv[])
     output_solution(temp_word, x_vals_mat_next);
     sprintf(temp_word, "./matrices/y_mat.txt");
     output_solution(temp_word, y_vals_mat_next);
+
+    *x_mat = x_vals_mat_next;
+    *y_mat = y_vals_mat_next;
 
     /*------------------------------------------------------------*/
 
@@ -927,7 +804,7 @@ int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
            double *psi_vals_mat, double *A, double *B,
            double *C,  double *D, double *temp_row)
 {
-    int i_index, j_index, success = 0;
+    int j_index, success = 0;
 
     /* solving for each j */
     for (j_index = 0; j_index < j_max+1; j_index++) {
@@ -970,7 +847,7 @@ int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
            double *fy_vals_mat, double *gama_vals_mat, double *A,
            double *B, double *C, double *D, double *temp_row)
 {
-    int i_index, j_index, success = 0;
+    int i_index, success = 0;
 
     /* solving for each i */
     for (i_index = 0; i_index < i_max+1; i_index++) {
