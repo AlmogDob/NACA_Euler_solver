@@ -29,30 +29,33 @@ omega
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include <math.h>
 #include <assert.h>
 #include <stdlib.h>
 
 #ifndef MAXDIR
-#define MAXDIR 100
+    #define MAXDIR 1000
 #endif
 #ifndef MAXWORD
-#define MAXWORD 100
+    #define MAXWORD 1000
 #endif
 #ifndef PI
-#define PI M_PI
+    #ifndef __USE_MISC
+    #define __USE_MISC
+    #endif
+    #include <math.h>
+    #define PI M_PI
 #endif
 #ifndef dprintSTRING
-#define dprintSTRING(expr) printf(#expr " = %s\n", expr)
+    #define dprintSTRING(expr) printf(#expr " = %s\n", expr)
 #endif
 #ifndef dprintINT
-#define dprintINT(expr) printf(#expr " = %d\n", expr)
+    #define dprintINT(expr) printf(#expr " = %d\n", expr)
 #endif
 #ifndef dprintF
-#define dprintF(expr) printf(#expr " = %g\n", expr)
+    #define dprintF(expr) printf(#expr " = %g\n", expr)
 #endif
 #ifndef dprintD
-#define dprintD(expr) printf(#expr " = %g\n", expr)
+    #define dprintD(expr) printf(#expr " = %g\n", expr)
 #endif
 
 typedef struct {
@@ -60,8 +63,8 @@ typedef struct {
     double y;
 } Vec2;
 
-int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega);
-void output_solution(char *dir, double *data, int i_max, int j_max);
+int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega, char *output_dir);
+void output_solution(char *file, double *data, int i_max, int j_max);
 int offset2d(int i, int j, int ni);
 void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, double *phi_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max, int i_min, int j_min, int NACA, double phi_valuse, double psi_valuse);
 void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max, int NACA);

@@ -1,6 +1,7 @@
 #include "mesher.h"
 
-int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega)
+/* return 0 on success */
+int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega, char *output_dir)
 {
     double psi_valuse = -1, phi_valuse = -1;
     int i_max = ni-1;
@@ -15,9 +16,13 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
     /* matrix diaganosl for different sweeps */
     double *A, *B, *C, *D, *temp_row;
     Vec2 result, first_result;
-    FILE *Ls_fp = fopen("./matrices/Ls_valuse.txt", "wt");
+
+
+    strcpy(temp_word, output_dir);
+    strcat(temp_word, "/Ls_valuse.txt");
+    FILE *Ls_fp = fopen(temp_word, "wt");
     if (!Ls_fp) {
-        fprintf(stderr, "%s:%d: [ERROR] unable to open file", __FILE__, __LINE__);
+        fprintf(stderr, "%s:%d: [ERROR] unable to open file '%s'", __FILE__, __LINE__, temp_word);
         exit(1);
     }
 
@@ -28,6 +33,10 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
     int i_TEU = i_LE + num_points_on_airfoil / 2 - 1;
 
     double delta_x = 1.0/(i_LE - i_TEL);
+
+    // dprintINT(i_LE);
+    // dprintINT(i_TEL);
+    // dprintINT(i_TEU);
 
 
     /*------------------------------------------------------------*/
@@ -172,7 +181,7 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
         copy_mat(y_vals_mat_current, y_vals_mat_next, i_max, j_max);
         
         /* printing Lx and Ly */
-        if (!((i_index+1) % 100)) {
+        if (!((i_index+1) % 1000)) {
             printf("%4d. Lx_max: %0.10f, Ly_max: %0.10f\n",i_index+1, result.x, result.y);
         }
         fprintf(Ls_fp, "%g, %g\n", result.x, result.y);
@@ -183,18 +192,27 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
         }
     }
 
-    output_solution("./matrices/x_mat_init.txt", x_vals_mat_init, i_max, j_max);
-    output_solution("./matrices/y_mat_init.txt", y_vals_mat_init, i_max, j_max);
-    sprintf(temp_word, "./matrices/x_mat.txt");
+    strcpy(temp_word, output_dir);
+    strcat(temp_word, "/x_mat_init.txt");
+    output_solution(temp_word, x_vals_mat_init, i_max, j_max);
+
+    strcpy(temp_word, output_dir);
+    strcat(temp_word, "/y_mat_init.txt");
+    output_solution(temp_word, y_vals_mat_init, i_max, j_max);
+
+    strcpy(temp_word, output_dir);
+    strcat(temp_word, "/x_mat.txt");
     output_solution(temp_word, x_vals_mat_next, i_max, j_max);
-    sprintf(temp_word, "./matrices/y_mat.txt");
+
+    strcpy(temp_word, output_dir);
+    strcat(temp_word, "/y_mat.txt");
     output_solution(temp_word, y_vals_mat_next, i_max, j_max);
 
     *x_mat = x_vals_mat_next;
     *y_mat = y_vals_mat_next;
 
     /*------------------------------------------------------------*/
-
+    /* freeing the memory */
     free(x_vals_mat_init);
     free(y_vals_mat_init);
     free(x_vals_mat_current);
@@ -223,9 +241,13 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
 argument list:
 dir - the directory of the output file.
 data - the solution vector */
-void output_solution(char *dir, double *data, int i_max, int j_max)
+void output_solution(char *file, double *data, int i_max, int j_max)
 {
-    FILE *fp = fopen(dir, "wt");
+    FILE *fp = fopen(file, "wt");
+    if (!fp) {
+        fprintf(stderr, "%s:%d: [ERROR] unable to open file '%s'", __FILE__, __LINE__, file);
+        exit(1);
+    }
     int i, j;
     
     for (j = 0; j < j_max+1; j++) {

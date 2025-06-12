@@ -7,7 +7,7 @@ main: build_mesher build_main
 	@gcc ./build/main.o ./build/mesher.o $(CFLAGS) -o ./build/main
 
 	@echo
-	./build/main $(IN_FILE)
+	./build/main $(IN_FILE) $(OUT_DIR)
 
 	@echo
 	@echo [INFO] removing build files
