@@ -1,11 +1,11 @@
 NACA
 8275
 
-i_max
-100
+ni
+101
 
-j_max
-47
+nj
+48
 
 num_points_on_airfoil
 61
@@ -24,9 +24,3 @@ r
 
 omega
 0.1
-
-phi
--1
-
-psi
--1

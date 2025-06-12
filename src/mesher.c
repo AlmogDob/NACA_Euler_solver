@@ -1,19 +1,21 @@
 #include "mesher.h"
 
-/* Input variables */
-double delta_x, delta_y, XSF, YSF, r, omega, psi_valuse = NAN, phi_valuse = NAN;
-int NACA, i_max, j_max, i_TEL, i_LE, i_TEU, i_min = 0, j_min = 0;
-
-int create_mesh(double **x_mat, double **y_mat, char *input_file)
+int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega)
 {
+    double psi_valuse = -1, phi_valuse = -1;
+    int i_max = ni-1;
+    int j_max = nj-1;
+
+    int i_LE = i_max / 2;
+    int i_TEL = i_LE - num_points_on_airfoil / 2 + 1;
+    int i_TEU = i_LE + num_points_on_airfoil / 2 - 1;
+
+    double delta_x = 1.0/(i_LE - i_TEL);
+
     /* declarations */
     char temp_word[MAXWORD];
     int i_index, j_index;
-    double *x_vals_mat_init, *y_vals_mat_init, *x_vals_mat_current,
-           *y_vals_mat_current, *x_vals_mat_next, *y_vals_mat_next,
-           *alpha_vals_mat, *beta_vals_mat, *gama_vals_mat, *psi_vals_mat,
-           *phi_vals_mat, *fx_vals_mat, *fy_vals_mat, *Cx_vals_mat,
-           *Cy_vals_mat;
+    double *x_vals_mat_init, *y_vals_mat_init, *x_vals_mat_current, *y_vals_mat_current, *x_vals_mat_next, *y_vals_mat_next, *alpha_vals_mat, *beta_vals_mat, *gama_vals_mat, *psi_vals_mat, *phi_vals_mat, *fx_vals_mat, *fy_vals_mat, *Cx_vals_mat, *Cy_vals_mat;
     /* matrix diaganosl for different sweeps */
     double *A, *B, *C, *D, *temp_row;
     Vec2 result, first_result;
@@ -26,7 +28,6 @@ int create_mesh(double **x_mat, double **y_mat, char *input_file)
     /*------------------------------------------------------------*/
 
 
-    read_input(input_file);
 
     /*------------------------------------------------------------*/
 
@@ -164,8 +165,7 @@ int create_mesh(double **x_mat, double **y_mat, char *input_file)
     
     /*------------------------------------------------------------*/
     
-    initialize(x_vals_mat_init, y_vals_mat_init, alpha_vals_mat, beta_vals_mat, gama_vals_mat,
-               psi_vals_mat, phi_vals_mat);
+    initialize(x_vals_mat_init, y_vals_mat_init, alpha_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, phi_vals_mat, i_TEL, i_TEU, i_LE, delta_x, delta_y, XSF, YSF, i_max, j_max);
     
     copy_mat(x_vals_mat_current, x_vals_mat_init);
     copy_mat(x_vals_mat_next, x_vals_mat_init);
@@ -205,12 +205,12 @@ int create_mesh(double **x_mat, double **y_mat, char *input_file)
         }
     }
 
-    output_solution("./matrices/x_mat_init.txt", x_vals_mat_init);
-    output_solution("./matrices/y_mat_init.txt", y_vals_mat_init);
+    output_solution("./matrices/x_mat_init.txt", x_vals_mat_init, i_max, j_max);
+    output_solution("./matrices/y_mat_init.txt", y_vals_mat_init, i_max, j_max);
     sprintf(temp_word, "./matrices/x_mat.txt");
-    output_solution(temp_word, x_vals_mat_next);
+    output_solution(temp_word, x_vals_mat_next, i_max, j_max);
     sprintf(temp_word, "./matrices/y_mat.txt");
-    output_solution(temp_word, y_vals_mat_next);
+    output_solution(temp_word, y_vals_mat_next, i_max, j_max);
 
     *x_mat = x_vals_mat_next;
     *y_mat = y_vals_mat_next;
@@ -241,79 +241,11 @@ int create_mesh(double **x_mat, double **y_mat, char *input_file)
     return 0;
 }
 
-/* sets 'flags' and variables according to the input file
-argument list:
-dir - the directory of the input file */
-void read_input(char *dir)
-{
-    FILE *fp = fopen(dir, "rt");
-    char current_word[MAXWORD];
-    float temp;
-    int num_points_on_airfoil;
-
-    if (!fp) {
-        fprintf(stderr, "Error opening file: %s\n", strerror(errno));
-        exit(1);
-    }
-
-    /* Seting the input varibles according to the input file */
-    while(fscanf(fp, "%s", current_word) != EOF) {  
-        if (!strcmp(current_word, "NACA")) {
-            fscanf(fp, "%d", &NACA);
-        } else if (!strcmp(current_word, "i_max")) {
-            fscanf(fp, "%d", &i_max);
-        } else if (!strcmp(current_word, "j_max")) {
-            fscanf(fp, "%d ", &j_max);
-        } else if (!strcmp(current_word, "num_points_on_airfoil")) {
-            fscanf(fp, "%d ", &num_points_on_airfoil);
-        } else if (!strcmp(current_word, "delta_y")) {
-            fscanf(fp, "%g", &temp); /* fscanf returns a float, so I cast it to double */
-            delta_y = (double)temp;
-        } else if (!strcmp(current_word, "XSF")) {
-            fscanf(fp, "%g", &temp); /* fscanf returns a float, so I cast it to double */
-            XSF = (double)temp;
-        } else if (!strcmp(current_word, "YSF")) {
-            fscanf(fp, "%g", &temp); /* fscanf returns a float, so I cast it to double */
-            YSF = (double)temp;
-        } else if (!strcmp(current_word, "r")) {
-            fscanf(fp, "%g", &temp);
-            r = (double)temp;
-        } else if (!strcmp(current_word, "omega")) {
-            fscanf(fp, "%g", &temp);
-            omega = (double)temp;
-        } else if (!strcmp(current_word, "phi")) {
-            fscanf(fp, "%g", &temp);
-            phi_valuse = (double)temp;
-        } else if (!strcmp(current_word, "psi")) {
-            fscanf(fp, "%g", &temp);
-            psi_valuse = (double)temp;
-        }
-    }
-
-    if ((i_max % 2)) {
-        fprintf(stderr, "%s:%d: [ERROR] i_max must be even\n", __FILE__, __LINE__);
-        exit(1);
-    }
-    if (!(num_points_on_airfoil % 2)) {
-        fprintf(stderr, "%s:%d: [ERROR] num_points_on_airfoil must be odd\n", __FILE__, __LINE__);
-        exit(1);
-    }
-
-    i_LE = i_max / 2;
-    i_TEL = i_LE - num_points_on_airfoil / 2 + 1;
-    i_TEU = i_LE + num_points_on_airfoil / 2 - 1;
-
-    delta_x = 1.0/(i_LE - i_TEL);
-
-    fclose(fp);
-}
-
-
 /* output data;
 argument list:
 dir - the directory of the output file.
 data - the solution vector */
-void output_solution(char *dir, double *data)
+void output_solution(char *dir, double *data, int i_max, int j_max)
 {
     FILE *fp = fopen(dir, "wt");
     int i, j;
@@ -345,11 +277,9 @@ y_vals_mat - 1D array of the y valuse
 alpha_vals_mat - 1D array for the alpha valus
 beta_vals_mat - 1D array for the beta valus
 gama_vals_mat - 1D array for the gama valus */
-void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat,
-                double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat,
-                double *phi_vals_mat)
+void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, double *phi_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max)
 {
-    set_grid_boundaries(x_vals_mat, y_vals_mat);
+    set_grid_boundaries(x_vals_mat, y_vals_mat, i_TEL, i_TEU, i_LE, delta_x, delta_y, XSF, YSF, i_max, j_max);
     interpulat_mat(x_vals_mat, 'j');
     interpulat_mat(y_vals_mat, 'j');
     alpha_beta_gama(alpha_vals_mat, beta_vals_mat, gama_vals_mat, x_vals_mat, y_vals_mat);
@@ -359,7 +289,7 @@ void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat,
 /* set the mash boundaries coorditates 
 argument list: x_vals_mat - 1D array of the x valuse 
 y_vals_mat - 1D array of the y valuse */
-void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat)
+void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max)
 {
     int i_index, i_min = 0, j_index, j_min = 0, index = 0, num_points_befor_circle,
     num_of_outer_segments, num_of_top_outer_segments;
