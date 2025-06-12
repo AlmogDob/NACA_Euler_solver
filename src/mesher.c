@@ -5,12 +5,8 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
     double psi_valuse = -1, phi_valuse = -1;
     int i_max = ni-1;
     int j_max = nj-1;
-
-    int i_LE = i_max / 2;
-    int i_TEL = i_LE - num_points_on_airfoil / 2 + 1;
-    int i_TEU = i_LE + num_points_on_airfoil / 2 - 1;
-
-    double delta_x = 1.0/(i_LE - i_TEL);
+    int i_min = 0;
+    int j_min = 0;
 
     /* declarations */
     char temp_word[MAXWORD];
@@ -27,6 +23,11 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
 
     /*------------------------------------------------------------*/
 
+    int i_LE = i_max / 2;
+    int i_TEL = i_LE - num_points_on_airfoil / 2 + 1;
+    int i_TEU = i_LE + num_points_on_airfoil / 2 - 1;
+
+    double delta_x = 1.0/(i_LE - i_TEL);
 
 
     /*------------------------------------------------------------*/
@@ -165,12 +166,12 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
     
     /*------------------------------------------------------------*/
     
-    initialize(x_vals_mat_init, y_vals_mat_init, alpha_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, phi_vals_mat, i_TEL, i_TEU, i_LE, delta_x, delta_y, XSF, YSF, i_max, j_max);
+    initialize(x_vals_mat_init, y_vals_mat_init, alpha_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, phi_vals_mat, i_TEL, i_TEU, i_LE, delta_x, delta_y, XSF, YSF, i_max, j_max, i_min, j_min, NACA, phi_valuse, psi_valuse);
     
-    copy_mat(x_vals_mat_current, x_vals_mat_init);
-    copy_mat(x_vals_mat_next, x_vals_mat_init);
-    copy_mat(y_vals_mat_current, y_vals_mat_init);
-    copy_mat(y_vals_mat_next, y_vals_mat_init);
+    copy_mat(x_vals_mat_current, x_vals_mat_init, i_max, j_max);
+    copy_mat(x_vals_mat_next, x_vals_mat_init, i_max, j_max);
+    copy_mat(y_vals_mat_current, y_vals_mat_init, i_max, j_max);
+    copy_mat(y_vals_mat_next, y_vals_mat_init, i_max, j_max);
 
     for (i_index = 0; i_index < 1e5; i_index++) {
         result = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat,
@@ -190,8 +191,8 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
             exit(2);
         }
 
-        copy_mat(x_vals_mat_current, x_vals_mat_next);
-        copy_mat(y_vals_mat_current, y_vals_mat_next);
+        copy_mat(x_vals_mat_current, x_vals_mat_next, i_max, j_max);
+        copy_mat(y_vals_mat_current, y_vals_mat_next, i_max, j_max);
         
         /* printing Lx and Ly */
         if (!((i_index+1) % 100)) {
@@ -277,19 +278,19 @@ y_vals_mat - 1D array of the y valuse
 alpha_vals_mat - 1D array for the alpha valus
 beta_vals_mat - 1D array for the beta valus
 gama_vals_mat - 1D array for the gama valus */
-void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, double *phi_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max)
+void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, double *phi_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max, int i_min, int j_min, int NACA, double phi_valuse, double psi_valuse)
 {
-    set_grid_boundaries(x_vals_mat, y_vals_mat, i_TEL, i_TEU, i_LE, delta_x, delta_y, XSF, YSF, i_max, j_max);
-    interpulat_mat(x_vals_mat, 'j');
-    interpulat_mat(y_vals_mat, 'j');
-    alpha_beta_gama(alpha_vals_mat, beta_vals_mat, gama_vals_mat, x_vals_mat, y_vals_mat);
-    psi_phi(psi_vals_mat, phi_vals_mat, x_vals_mat, y_vals_mat);
+    set_grid_boundaries(x_vals_mat, y_vals_mat, i_TEL, i_TEU, i_LE, delta_x, delta_y, XSF, YSF, i_max, j_max, NACA);
+    interpulat_mat(x_vals_mat, 'j', i_max, j_max, i_min, j_min);
+    interpulat_mat(y_vals_mat, 'j', i_max, j_max, i_min, j_min);
+    alpha_beta_gama(alpha_vals_mat, beta_vals_mat, gama_vals_mat, x_vals_mat, y_vals_mat, i_max, i_min, j_max, j_min);
+    psi_phi(psi_vals_mat, phi_vals_mat, x_vals_mat, y_vals_mat, i_min, i_max, j_min, j_max, phi_valuse, psi_valuse);
 }
 
 /* set the mash boundaries coorditates 
 argument list: x_vals_mat - 1D array of the x valuse 
 y_vals_mat - 1D array of the y valuse */
-void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max)
+void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max, int NACA)
 {
     int i_index, i_min = 0, j_index, j_min = 0, index = 0, num_points_befor_circle,
     num_of_outer_segments, num_of_top_outer_segments;
@@ -300,7 +301,7 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat, int i_TEL, int 
     /* airfoil */
     for (i_index = i_TEL, j_index = j_min; i_index < i_TEU+1; i_index++) { 
         x_temp = 1 - cos(0.5*PI*(i_LE-i_index)*delta_x);
-        airfoil(&x, &y, x_temp, i_index);
+        airfoil(&x, &y, x_temp, i_index, NACA, i_LE);
         x_vals_mat[offset2d(i_index, j_index, i_max+1)] = x;
         y_vals_mat[offset2d(i_index, j_index, i_max+1)] = y;
     }
@@ -369,7 +370,7 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat, int i_TEL, int 
 /* returns the shape of the airfoil as a function of x
 argument list: 
 i - index along the airfoil */
-void airfoil(double *x_value, double *y_value, double x, int i)
+void airfoil(double *x_value, double *y_value, double x, int i, int NACA, int i_LE)
 {
     double m = ((NACA % 10000)/1000) / (double)100;
     double p = ((NACA % 1000)/100) / (double)10;
@@ -410,7 +411,7 @@ void airfoil(double *x_value, double *y_value, double x, int i)
 argument list:
 mat - 1D array of valsuse
 diraction - i direction or j direction */
-void interpulat_mat(double *mat, char diraction)
+void interpulat_mat(double *mat, char diraction, int i_max, int j_max, int i_min, int j_min)
 {
     int i, j; 
     double max, min;
@@ -442,7 +443,7 @@ argument list:
 mat - 1D array of valuse
 diraction - i or j
 i, j - the points coordinates */
-double first_deriv(double *mat, char diraction, int i, int j)
+double first_deriv(double *mat, char diraction, int i_min, int i_max, int j_min, int j_max, int i, int j)
 {
     if (diraction == 'j') {
         if (j == j_min || j == j_max) {
@@ -464,7 +465,7 @@ argument list:
 mat - 1D array of valuse
 diraction - i or j
 i, j - the points coordinates */
-double second_deriv(double *mat, char diraction, int i, int j)
+double second_deriv(double *mat, char diraction, int i_min, int i_max, int j_min, int j_max, int i, int j)
 {
     if (diraction == 'j') {
         if (j == j_min || j == j_max) {
@@ -488,7 +489,7 @@ beta_vals_mat - 1D array for the beta valus
 gama_vals_mat - 1D array for the gama valus
 x_vals_mat - 1D array of the x valus
 y_vals_mat - 1D array of the y valus */
-void alpha_beta_gama(double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *x_vals_mat, double *y_vals_mat)
+void alpha_beta_gama(double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *x_vals_mat, double *y_vals_mat, int i_max, int i_min, int j_max, int j_min)
 {
     /* according to equation 3 */
     int i, j;
@@ -496,10 +497,10 @@ void alpha_beta_gama(double *alpha_vals_mat, double *beta_vals_mat, double *gama
 
     for (i = 0; i < i_max + 1; i++) {
         for (j = 0; j < j_max + 1; j++) {
-            Dx_Deta = first_deriv(x_vals_mat, 'j', i, j);
-            Dy_Deta = first_deriv(y_vals_mat, 'j', i, j);
-            Dx_Dxai = first_deriv(x_vals_mat, 'i', i, j);
-            Dy_Dxai = first_deriv(y_vals_mat, 'i', i, j);
+            Dx_Deta = first_deriv(x_vals_mat, 'j', i_min, i_max, j_min, j_max, i, j);
+            Dy_Deta = first_deriv(y_vals_mat, 'j', i_min, i_max, j_min, j_max, i, j);
+            Dx_Dxai = first_deriv(x_vals_mat, 'i', i_min, i_max, j_min, j_max, i, j);
+            Dy_Dxai = first_deriv(y_vals_mat, 'i', i_min, i_max, j_min, j_max, i, j);
             alpha_vals_mat[offset2d(i, j, i_max+1)] = Dx_Deta*Dx_Deta + Dy_Deta*Dy_Deta;
             beta_vals_mat[offset2d(i, j, i_max+1)] = Dx_Dxai*Dx_Deta + Dy_Dxai*Dy_Deta;
             gama_vals_mat[offset2d(i, j, i_max+1)] = Dx_Dxai*Dx_Dxai + Dy_Dxai*Dy_Dxai;
@@ -513,7 +514,7 @@ psi_vals_mat - 1D array for the psi valus
 phi_vals_mat - 1D array for the phi valus
 x_vals_mat - 1D array of the x valus
 y_vals_mat - 1D array of the y valus */
-void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, double *y_vals_mat)
+void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, double *y_vals_mat, int i_min, int i_max, int j_min, int j_max, double phi_valuse, double psi_valuse)
 {
     /* according to equation 4 and 5 */
     int i, j;
@@ -521,21 +522,17 @@ void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, dou
     Dx_Deta_Deta_min, Dx_Deta_Deta_max, Dy_Deta_Deta_min, Dy_Deta_Deta_max, Dx_Dxai_Dxai_min, Dx_Dxai_Dxai_max,
     Dy_Dxai_Dxai_min, Dy_Dxai_Dxai_max;
 
-    /*test*/
-    // dprintD(second_deriv(x_vals_mat, 'j', i_min, j = 1));
-    /*test*/
-
     /* eq 4 */
     for (j = 0; j < j_max+1; j++) {
         if (psi_valuse == -1) {
-            Dx_Deta_min = first_deriv(x_vals_mat, 'j', i_min, j);
-            Dy_Deta_min = first_deriv(y_vals_mat, 'j', i_min, j);
-            Dx_Deta_max = first_deriv(x_vals_mat, 'j', i_max, j);
-            Dy_Deta_max = first_deriv(y_vals_mat, 'j', i_max, j);
-            Dx_Deta_Deta_min = second_deriv(x_vals_mat, 'j', i_min, j);
-            Dy_Deta_Deta_min = second_deriv(y_vals_mat, 'j', i_min, j);
-            Dx_Deta_Deta_max = second_deriv(x_vals_mat, 'j', i_max, j);
-            Dy_Deta_Deta_max = second_deriv(y_vals_mat, 'j', i_max, j);
+            Dx_Deta_min = first_deriv(x_vals_mat, 'j', i_min, i_max, j_min, j_max, i_min, j);
+            Dy_Deta_min = first_deriv(y_vals_mat, 'j', i_min, i_max, j_min, j_max, i_min, j);
+            Dx_Deta_max = first_deriv(x_vals_mat, 'j', i_min, i_max, j_min, j_max, i_max, j);
+            Dy_Deta_max = first_deriv(y_vals_mat, 'j', i_min, i_max, j_min, j_max, i_max, j);
+            Dx_Deta_Deta_min = second_deriv(x_vals_mat, 'j', i_min, i_max, j_min, j_max, i_min, j);
+            Dy_Deta_Deta_min = second_deriv(y_vals_mat, 'j', i_min, i_max, j_min, j_max, i_min, j);
+            Dx_Deta_Deta_max = second_deriv(x_vals_mat, 'j', i_min, i_max, j_min, j_max, i_max, j);
+            Dy_Deta_Deta_max = second_deriv(y_vals_mat, 'j', i_min, i_max, j_min, j_max, i_max, j);
 
             if (fabs(Dy_Deta_min) > fabs(Dx_Deta_min)) {
                 psi_vals_mat[offset2d(i_min, j, i_max+1)] = - Dy_Deta_Deta_min / Dy_Deta_min;
@@ -558,14 +555,14 @@ void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, dou
     /* eq 5 */
     for (i = 0; i < i_max+1; i++) {
         if (phi_valuse == -1) {
-            Dx_Dxai_min = first_deriv(x_vals_mat, 'i', i, j_min);
-            Dy_Dxai_min = first_deriv(y_vals_mat, 'i', i, j_min);
-            Dx_Dxai_max = first_deriv(x_vals_mat, 'i', i, j_max);
-            Dy_Dxai_max = first_deriv(y_vals_mat, 'i', i, j_max);
-            Dx_Dxai_Dxai_min = second_deriv(x_vals_mat, 'i', i, j_min);
-            Dy_Dxai_Dxai_min = second_deriv(y_vals_mat, 'i', i, j_min);
-            Dx_Dxai_Dxai_max = second_deriv(x_vals_mat, 'i', i, j_max);
-            Dy_Dxai_Dxai_max = second_deriv(y_vals_mat, 'i', i, j_max);
+            Dx_Dxai_min = first_deriv(x_vals_mat, 'i', i_min, i_max, j_min, j_max, i, j_min);
+            Dy_Dxai_min = first_deriv(y_vals_mat, 'i', i_min, i_max, j_min, j_max, i, j_min);
+            Dx_Dxai_max = first_deriv(x_vals_mat, 'i', i_min, i_max, j_min, j_max, i, j_max);
+            Dy_Dxai_max = first_deriv(y_vals_mat, 'i', i_min, i_max, j_min, j_max, i, j_max);
+            Dx_Dxai_Dxai_min = second_deriv(x_vals_mat, 'i', i_min, i_max, j_min, j_max, i, j_min);
+            Dy_Dxai_Dxai_min = second_deriv(y_vals_mat, 'i', i_min, i_max, j_min, j_max, i, j_min);
+            Dx_Dxai_Dxai_max = second_deriv(x_vals_mat, 'i', i_min, i_max, j_min, j_max, i, j_max);
+            Dy_Dxai_Dxai_max = second_deriv(y_vals_mat, 'i', i_min, i_max, j_min, j_max, i, j_max);
 
             if (fabs(Dx_Dxai_min) > fabs(Dy_Dxai_min)) {
                 phi_vals_mat[offset2d(i, j_min, i_max+1)] = - Dx_Dxai_Dxai_min / Dx_Dxai_min;
@@ -585,15 +582,15 @@ void psi_phi(double *psi_vals_mat, double *phi_vals_mat, double *x_vals_mat, dou
         }
     }
 
-    interpulat_mat(psi_vals_mat, 'i');
-    interpulat_mat(phi_vals_mat, 'j');
+    interpulat_mat(psi_vals_mat, 'i', i_max, j_max, i_min, j_min);
+    interpulat_mat(phi_vals_mat, 'j', i_max, j_max, i_min, j_min);
 }
 
 /* copys matrix src to matrix src 
 argument list:
 dst - 1D array for the destination valus 
 src - 1D array of the source valus */
-void copy_mat(double *dst, double *src)
+void copy_mat(double *dst, double *src, int i_max, int j_max)
 {
     int i, j;
     
@@ -605,7 +602,7 @@ void copy_mat(double *dst, double *src)
 }
 
 /* copys the row 'src' into the j row in the destination matrix */
-void copy_row_to_mat(double *dst, double *src, int row_num)
+void copy_row_to_mat(double *dst, double *src, int row_num, int i_max)
 {
     int i;
     
@@ -614,7 +611,7 @@ void copy_row_to_mat(double *dst, double *src, int row_num)
     }
 }
 
-void copy_col_to_mat(double *dst, double *src, int col_num)
+void copy_col_to_mat(double *dst, double *src, int col_num, int i_max, int j_max)
 {
     int j;
     
@@ -632,9 +629,7 @@ beta_vals_mat - 1D array of the beta valus
 gama_vals_mat - 1D array of the gama valus
 psi_vals_mat - 1D array of the psi valus 
 i, j = the point coordinate */
-double L_x(double *x_vals_mat, double *alpha_vals_mat,
-           double *phi_vals_mat, double *beta_vals_mat,
-           double *gama_vals_mat, double *psi_vals_mat, int i, int j)
+double L_x(double *x_vals_mat, double *alpha_vals_mat, double *phi_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, int i_max, int j_max, int i, int j)
 {
     double first_element, second_element, third_element, x_i_plus1_j, x_i_j,
     x_i_minus1_j, x_i_plus1_j_plus1, x_i_plus1_j_minus1, x_i_minus1_j_plus1,
@@ -679,9 +674,7 @@ gama_vals_mat - 1D array of the gama valus
 phi_vals_mat - 1D array of the phi valus
 psi_vals_mat - 1D array of the psi valus 
 i, j = the point coordinate */
-double L_y(double *y_vals_mat, double *alpha_vals_mat,
-           double *phi_vals_mat, double *beta_vals_mat,
-           double *gama_vals_mat, double *psi_vals_mat, int i, int j)
+double L_y(double *y_vals_mat, double *alpha_vals_mat, double *phi_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, int i_max, int j_max, int i, int j)
 {
     double first_element, second_element, third_element, y_i_plus1_j, y_i_j,
     y_i_minus1_j, y_i_plus1_j_plus1, y_i_plus1_j_minus1, y_i_minus1_j_plus1,
@@ -728,35 +721,29 @@ phi_vals_mat - 1D array of the phi valus
 beta_vals_mat - 1D array of the beta valus
 gama_vals_mat - 1D array of the gama valus
 psi_vals_mat - 1D array of the psi valus */
-int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat,
-           double *y_vals_mat, double *alpha_vals_mat, double *phi_vals_mat,
-           double *beta_vals_mat, double *gama_vals_mat,
-           double *psi_vals_mat, double *A, double *B,
-           double *C,  double *D, double *temp_row)
+int sweep1(double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat, double *phi_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, double *A, double *B, double *C,  double *D, double *temp_row, int i_max, int j_max, double r, double omega)
 {
     int j_index, success = 0;
 
     /* solving for each j */
     for (j_index = 0; j_index < j_max+1; j_index++) {
-        LHS_sweep1(A, B, C, alpha_vals_mat, j_index);
-        RHS_sweep1_x(D, x_vals_mat, alpha_vals_mat, phi_vals_mat,
-                     beta_vals_mat, gama_vals_mat, psi_vals_mat, j_index);
-        BC_sweep1(A, B, C, D);
+        LHS_sweep1(A, B, C, alpha_vals_mat, j_index, i_max, r);
+        RHS_sweep1_x(D, x_vals_mat, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, j_index, i_max, j_max, r, omega); 
+        BC_sweep1(A, B, C, D, i_max);
         success = tridiag(A, B, C, D, temp_row, 0, i_max);
         if (success == 1) {
             break;
         }
-        copy_row_to_mat(fx_vals_mat, temp_row, j_index);
+        copy_row_to_mat(fx_vals_mat, temp_row, j_index, i_max);
 
-        LHS_sweep1(A, B, C, alpha_vals_mat, j_index);
-        RHS_sweep1_y(D, y_vals_mat, alpha_vals_mat, phi_vals_mat,
-                     beta_vals_mat, gama_vals_mat, psi_vals_mat, j_index);
-        BC_sweep1(A, B, C, D);
+        LHS_sweep1(A, B, C, alpha_vals_mat, j_index, i_max, r);
+        RHS_sweep1_y(D, y_vals_mat, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, j_index, i_max, j_max, r, omega);
+        BC_sweep1(A, B, C, D, i_max);
         success = tridiag(A, B, C, D, temp_row, 0, i_max);
         if (success == 1) {
             break;
         }
-        copy_row_to_mat(fy_vals_mat, temp_row, j_index);
+        copy_row_to_mat(fy_vals_mat, temp_row, j_index, i_max);
     }
     if (success == 1) {
         return 1;
@@ -773,17 +760,15 @@ Cy_vals_mat - 1D array for the Cy valus
 fx_vals_mat - 1D array of the fx valus
 fy_vals_mat - 1D array of the fy valus
 gama_vals_mat - 1D array of the gama valus */
-int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
-           double *fy_vals_mat, double *gama_vals_mat, double *A,
-           double *B, double *C, double *D, double *temp_row)
+int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat, double *fy_vals_mat, double *gama_vals_mat, double *A, double *B, double *C, double *D, double *temp_row, int i_max, int j_max, double r)
 {
     int i_index, success = 0;
 
     /* solving for each i */
     for (i_index = 0; i_index < i_max+1; i_index++) {
-        LHS_sweep2(A, B, C, gama_vals_mat, i_index);
-        RHS_sweep2_x(D, fx_vals_mat, i_index);
-        BC_sweep2(A, B, C, D);
+        LHS_sweep2(A, B, C, gama_vals_mat, i_index, i_max, j_max, r);
+        RHS_sweep2_x(D, fx_vals_mat, i_index, i_max, j_max);
+        BC_sweep2(A, B, C, D, j_max);
         /*test*/
         // for (int index = 0; index < j_max+1; index++) {
         //     printf("%g\n", B[index]);
@@ -794,11 +779,11 @@ int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
             printf("1\n");
             break;
         }
-        copy_col_to_mat(Cx_vals_mat, temp_row, i_index);
+        copy_col_to_mat(Cx_vals_mat, temp_row, i_index, i_max, j_max);
 
-        LHS_sweep2(A, B, C, gama_vals_mat, i_index);
-        RHS_sweep2_y(D, fy_vals_mat, i_index);
-        BC_sweep2(A, B, C, D);
+        LHS_sweep2(A, B, C, gama_vals_mat, i_index, i_max, j_max, r);
+        RHS_sweep2_y(D, fy_vals_mat, i_index, i_max, j_max);
+        BC_sweep2(A, B, C, D, j_max);
         /*test*/
         // for (int index = 0; index < j_max+1; index++) {
         //     printf("%g\n", Bx2[index]);
@@ -809,7 +794,7 @@ int sweep2(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
             printf("2\n");
             break;
         }
-    copy_col_to_mat(Cy_vals_mat, temp_row, i_index);
+    copy_col_to_mat(Cy_vals_mat, temp_row, i_index, i_max, j_max);
     }
     if (success == 1) {
         return 1;
@@ -825,7 +810,7 @@ B - 1D array for the B valus
 C - 1D array for the C valus
 alpha_vals_mat - 1D array of the alpha valus
 j - the row number */
-void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j)
+void LHS_sweep1(double *A, double *B, double *C, double *alpha_vals_mat, int j, int i_max, double r)
 {
     int i;
 
@@ -843,7 +828,7 @@ B - 1D array for the B valus
 C - 1D array for the C valus
 alpha_vals_mat - 1D array of the alpha valus
 j - the row number */
-void LHS_sweep2(double *A, double *B, double *C, double *gama_vals_mat, int i)
+void LHS_sweep2(double *A, double *B, double *C, double *gama_vals_mat, int i, int i_max, int j_max, double r)
 {
     int j;
 
@@ -864,16 +849,12 @@ beta_vals_mat - 1D array of the beta valus
 gama_vals_mat - 1D array of the gama valus
 psi_vals_mat - 1D array of the psi valus 
 j - the row number */
-void RHS_sweep1_x(double *D, double *x_vals_mat, double *alpha_vals_mat,
-                double *phi_vals_mat, double *beta_vals_mat,
-                double *gama_vals_mat, double *psi_vals_mat, int j)
+void RHS_sweep1_x(double *D, double *x_vals_mat, double *alpha_vals_mat, double *phi_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, int j, int i_max, int j_max, double r, double omega)
 {
     int i;
     
     for (i = 0; i < i_max+1; i++) {
-        D[i] = r * omega * L_x(x_vals_mat, alpha_vals_mat, phi_vals_mat,
-                               beta_vals_mat, gama_vals_mat,
-                               psi_vals_mat, i, j);
+        D[i] = r * omega * L_x(x_vals_mat, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, i_max, j_max, i, j);
     }
 }
 
@@ -882,7 +863,7 @@ argument list:
 D - 1D array for the D valus 
 fx_vals_mat - 1D array of the fx valus
 i - the row number */
-void RHS_sweep2_x(double *D,double *fx_vals_mat, int i)
+void RHS_sweep2_x(double *D,double *fx_vals_mat, int i, int i_max, int j_max)
 {
     int j;
     
@@ -901,16 +882,12 @@ beta_vals_mat - 1D array of the beta valus
 gama_vals_mat - 1D array of the gama valus
 psi_vals_mat - 1D array of the psi valus 
 j - the row number */
-void RHS_sweep1_y(double *D, double *y_vals_mat, double *alpha_vals_mat,
-                double *phi_vals_mat, double *beta_vals_mat,
-                double *gama_vals_mat, double *psi_vals_mat, int j)
+void RHS_sweep1_y(double *D, double *y_vals_mat, double *alpha_vals_mat, double *phi_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, int j, int i_max, int j_max, double r, double omega)
 {
     int i;
     
     for (i = 0; i < i_max+1; i++) {
-        D[i] = r * omega * L_y(y_vals_mat, alpha_vals_mat, phi_vals_mat,
-                               beta_vals_mat, gama_vals_mat,
-                               psi_vals_mat, i, j);
+        D[i] = r * omega * L_y(y_vals_mat, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, i_max, j_max, i, j);
     }
 }
 
@@ -919,7 +896,7 @@ argument list:
 D - 1D array for the D valus 
 fy_vals_mat - 1D array of the fy valus
 i - the row number */
-void RHS_sweep2_y(double *D,double *fy_vals_mat, int i)
+void RHS_sweep2_y(double *D,double *fy_vals_mat, int i, int i_max, int j_max)
 {
     int j;
     
@@ -932,7 +909,7 @@ void RHS_sweep2_y(double *D,double *fy_vals_mat, int i)
 argument list:
 A, B, C are the tridaig diaganols
 D is the RHS vector */
-void BC_sweep1(double *A, double *B, double *C, double *D)
+void BC_sweep1(double *A, double *B, double *C, double *D, int i_max)
 {
     A[0] = 0;
     B[0] = 1;
@@ -948,7 +925,7 @@ void BC_sweep1(double *A, double *B, double *C, double *D)
 argument list:
 A, B, C are the tridaig diaganols
 D is the RHS vector */
-void BC_sweep2(double *A, double *B, double *C, double *D)
+void BC_sweep2(double *A, double *B, double *C, double *D, int j_max)
 {
     A[0] = 0;
     B[0] = 1;
