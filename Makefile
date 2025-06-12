@@ -1,6 +1,7 @@
 CFLAGS = -Wall -Wextra -lm -std=c99
 CCHECKS = -fsanitize=address
 
+# IN_FILE=mesher_input.txt make main
 main: build_mesher build_main 
 	@echo [INFO] linking
 	@gcc ./build/main.o ./build/mesher.o $(CFLAGS) -o ./build/main

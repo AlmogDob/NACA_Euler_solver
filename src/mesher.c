@@ -31,25 +31,6 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
 
 
     /*------------------------------------------------------------*/
-
-    /* Checking that I got the right input */
-    dprintINT(NACA);
-    dprintINT(i_max);
-    dprintINT(j_max);
-    dprintINT(i_TEL);
-    dprintINT(i_LE);
-    dprintINT(i_TEU);
-    dprintD(delta_x);
-    dprintD(delta_y);
-    dprintD(XSF);
-    dprintD(YSF);
-    dprintD(r);
-    dprintD(omega);
-    dprintD(phi_valuse);
-    dprintD(psi_valuse);
-    printf("--------------------\n");
-
-    /*------------------------------------------------------------*/
     
     /* Memory allocation */
     x_vals_mat_init = (double *)malloc(sizeof(double) * (i_max + 1) * (j_max + 1));
@@ -174,11 +155,7 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
     copy_mat(y_vals_mat_next, y_vals_mat_init, i_max, j_max);
 
     for (i_index = 0; i_index < 1e5; i_index++) {
-        result = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat,
-                       x_vals_mat_current, x_vals_mat_next, y_vals_mat_current,
-                       y_vals_mat_next, alpha_vals_mat, phi_vals_mat,
-                       beta_vals_mat, gama_vals_mat, psi_vals_mat,
-                       A, B, C, D, temp_row);
+        result = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat, x_vals_mat_current, x_vals_mat_next, y_vals_mat_current, y_vals_mat_next, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, A, B, C, D, temp_row, i_max, i_min, j_max, j_min, r, omega);
         if (i_index == 0) {
             first_result = result;
         }
@@ -980,30 +957,19 @@ beta_vals_mat - 1D array of the beta valus
 gama_vals_mat - 1D array of the gama valus
 psi_vals_mat - 1D array of the psi valus
 A-D are temperary vectors for inverting the tri-diag matrices */
-Vec2 step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
-         double *fy_vals_mat, double *x_vals_mat_current,
-         double *x_vals_mat_next, double *y_vals_mat_current,
-         double *y_vals_mat_next, double *alpha_vals_mat,
-         double *phi_vals_mat, double *beta_vals_mat,
-         double *gama_vals_mat, double *psi_vals_mat,
-         double *A, double *B, double *C, double *D, double *temp_row)
+Vec2 step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat, double *fy_vals_mat, double *x_vals_mat_current, double *x_vals_mat_next, double *y_vals_mat_current, double *y_vals_mat_next, double *alpha_vals_mat, double *phi_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, double *A, double *B, double *C, double *D, double *temp_row, int i_max, int i_min, int j_max, int j_min, double r, double omega)
 {
     int success, i, j, index; 
     Vec2 ans = {.x = 0, .y = 0};
 
-    alpha_beta_gama(alpha_vals_mat, beta_vals_mat, gama_vals_mat, x_vals_mat_current, y_vals_mat_current);
+    alpha_beta_gama(alpha_vals_mat, beta_vals_mat, gama_vals_mat, x_vals_mat_current, y_vals_mat_current, i_max, i_min, j_max, j_min);
 
-    success = sweep1(fx_vals_mat, fy_vals_mat, x_vals_mat_current,
-           y_vals_mat_current, alpha_vals_mat, phi_vals_mat,
-           beta_vals_mat, gama_vals_mat, psi_vals_mat, A, B,
-           C, D, temp_row);
+    success = sweep1(fx_vals_mat, fy_vals_mat, x_vals_mat_current, y_vals_mat_current, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, A, B, C, D, temp_row, i_max, j_max, r, omega);
     if (success != 0) {
         ans.x = 1;
         return ans;
     }
-    success = sweep2(Cx_vals_mat, Cy_vals_mat, fx_vals_mat,
-                     fy_vals_mat, gama_vals_mat, A, B,
-                     C, D, temp_row);
+    success = sweep2(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat, gama_vals_mat, A, B, C, D, temp_row, i_max, j_max, r);
     if (success != 0) {
         ans.x = 2;
         return ans;
@@ -1017,12 +983,8 @@ Vec2 step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
         }
     }
 
-    ans.x = calculate_max_L_x(x_vals_mat_current, alpha_vals_mat,
-                              phi_vals_mat, beta_vals_mat, gama_vals_mat,
-                              psi_vals_mat);
-    ans.y = calculate_max_L_y(y_vals_mat_current, alpha_vals_mat,
-                              phi_vals_mat, beta_vals_mat, gama_vals_mat,
-                              psi_vals_mat);
+    ans.x = calculate_max_L_x(x_vals_mat_current, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, i_max, j_max);
+    ans.y = calculate_max_L_y(y_vals_mat_current, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, i_max, j_max);
 
     return ans;
 }
@@ -1031,7 +993,7 @@ Vec2 step(double *Cx_vals_mat, double *Cy_vals_mat, double *fx_vals_mat,
 argument list:
 fp - file pointer
 data - 1D array */
-void mat_print_to_file(FILE *fp, double *data)
+void mat_print_to_file(FILE *fp, double *data, int i_max, int j_max)
 {
     int j_index, i_index;
     for (j_index = 0; j_index < j_max+1; j_index++) {
@@ -1045,7 +1007,7 @@ void mat_print_to_file(FILE *fp, double *data)
 /* printing a 1D array to the commend line
 argument list:
 data - 1D array */
-void mat_print(double *data)
+void mat_print(double *data, int i_max, int j_max)
 {
     int j_index, i_index;
     for (j_index = 0; j_index < j_max+1; j_index++) {
@@ -1064,18 +1026,14 @@ phi_vals_mat - 1D array of the phi valus
 beta_vals_mat - 1D array of the beta valus
 gama_vals_mat - 1D array of the gama valus
 psi_vals_mat - 1D array of the psi valus */
-double calculate_max_L_x(double *x_vals_mat, double *alpha_vals_mat,
-           double *phi_vals_mat, double *beta_vals_mat,
-           double *gama_vals_mat, double *psi_vals_mat)
+double calculate_max_L_x(double *x_vals_mat, double *alpha_vals_mat, double *phi_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, int i_max, int j_max)
 {
     int j_index, i_index;
     double max_L_x = 0, current_L_x;
 
     for (j_index = 0; j_index < j_max+1; j_index++) {
         for (i_index = 0; i_index < i_max+1; i_index++) {
-            current_L_x = L_x(x_vals_mat, alpha_vals_mat,
-                              phi_vals_mat, beta_vals_mat,
-                              gama_vals_mat, psi_vals_mat, i_index, j_index);
+            current_L_x = L_x(x_vals_mat, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, i_max, j_max, i_index, j_index);
             if (fabs(current_L_x) > max_L_x) {
                 max_L_x = fabs(current_L_x);
             }
@@ -1092,18 +1050,14 @@ phi_vals_mat - 1D array of the phi valus
 beta_vals_mat - 1D array of the beta valus
 gama_vals_mat - 1D array of the gama valus
 psi_vals_mat - 1D array of the psi valus */
-double calculate_max_L_y(double *y_vals_mat, double *alpha_vals_mat,
-           double *phi_vals_mat, double *beta_vals_mat,
-           double *gama_vals_mat, double *psi_vals_mat)
+double calculate_max_L_y(double *y_vals_mat, double *alpha_vals_mat, double *phi_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, int i_max, int j_max)
 {
     int j_index, i_index;
     double max_L_y = 0, current_L_y;
 
     for (j_index = 0; j_index < j_max+1; j_index++) {
         for (i_index = 0; i_index < i_max+1; i_index++) {
-            current_L_y = L_y(y_vals_mat, alpha_vals_mat,
-                              phi_vals_mat, beta_vals_mat,
-                              gama_vals_mat, psi_vals_mat, i_index, j_index);
+            current_L_y = L_y(y_vals_mat, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, i_max, j_max, i_index, j_index);
             if (fabs(current_L_y) > max_L_y) {
                 max_L_y = fabs(current_L_y);
             }
