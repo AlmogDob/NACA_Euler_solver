@@ -10,7 +10,6 @@ loglog(data(:,2))
 title("Convergence History for Mach = 1.5, dt = 3.8e-4");
 ylabel("L2Norm [-]")
 xlabel("num of iterations [-]")
-subtitle("Almog Dobrescu 214254252")
 % exportgraphics(fig3, 'grap8.1.png','Resolution',1200);
 
 %% Mach distribution mach 1.5
@@ -40,7 +39,6 @@ plot(i_TEL:1:i_TEU, M(1,i_TEL+1:1:i_TEU+1))
 title("Mach Distribution On the Airfoil for Mach 1.5, dt = 3.8e-4");
 ylabel("Mach number [-]")
 xlabel("xi index [-]")
-subtitle("Almog Dobrescu 214254252")
 % exportgraphics(fig4, 'grap9.png','Resolution',1200);
 
 %% Pressure distribution mach 1.5
@@ -69,7 +67,6 @@ plot(i_TEL:1:i_TEU, p(1,i_TEL+1:1:i_TEU+1))
 title("Pressure Distribution On the Airfoil for Mach = 1.5, dt = 3.8e-4");
 ylabel("Pressure [Pa]")
 xlabel("xi index [-]")
-subtitle("Almog Dobrescu 214254252")
 % exportgraphics(fig5, 'grap10.png','Resolution',1200);
 
 %% Effect of Time Step on Convergence History for Mach = 0.9
@@ -99,7 +96,6 @@ legend(leg,'FontSize',13 ,'Location','southwest')
 title("Effect of Time Step on Convergence History for Mach = 0.9");
 ylabel("L2Norm [-]")
 xlabel("num of iterations [-]")
-subtitle("Almog Dobrescu 214254252");
 % exportgraphics(fig6, 'grap11.png','Resolution',1200);
 
 %% Effect of Time Step on Mach Distribution for Mach = 0.9
@@ -116,7 +112,6 @@ fig7 = figure ("Name","Effect of Time Step on Mach Distribution for Mach = 0.9",
 title("Effect of Time Step on Mach Distribution for Mach = 0.9");
 ylabel("Mach number [-]")
 xlabel("xi index [-]")
-subtitle("Almog Dobrescu 214254252")
 % exportgraphics(fig7, 'grap13.png','Resolution',1200);
 
 for i = 1:num_of_test
@@ -159,7 +154,6 @@ fig8 = figure ("Name","Effect of Time Step on Pressure Distribution for Mach = 0
 title("Effect of Time Step on Pressure Distribution for Mach = 0.9");
 ylabel("Pressure [Pa]")
 xlabel("xi index [-]")
-subtitle("Almog Dobrescu 214254252")
 % exportgraphics(fig8, 'grap14.png','Resolution',1200);
 
 for i = 1:num_of_test

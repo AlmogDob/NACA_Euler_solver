@@ -1,0 +1,2 @@
+NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega
+4215, 101, 48, 61, 0.005000, 1.100000, 1.100000, 0.001000, 0.100000

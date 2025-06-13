@@ -84,7 +84,6 @@ fig1 = figure ("Name","Flow Field for Mach = 1.5, dt = 3.8e-4",'Position',[100 3
 title("Flow Field for Mach = 1.5, dt = 3.8e-4");
 ylabel("Y [-]")
 xlabel("X [-]")
-subtitle("Almog Dobrescu 214254252")
 % axis equal
 hold all
 contourf(x, y, M, 3000, "LineStyle","none");

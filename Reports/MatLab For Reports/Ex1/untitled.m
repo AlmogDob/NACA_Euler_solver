@@ -87,7 +87,6 @@ ylim([-4.5 4.5])
 title("The Mesh for psi=BC phi=BC | r = 0.01, omega = 1");
 ylabel("Y [-]")
 xlabel("X [-]")
-subtitle("Almog Dobrescu 214254252")
 % legend({'The Mesh'},'FontSize',11 ,'Location','southeast')
 %exportgraphics(fig1, 'grap1.png','Resolution',1200);
 
@@ -107,7 +106,6 @@ grid minor
 title("Residual Convergens for phi=BC psi=BC | r = 0.01, omega = 1");
 ylabel("L [-]")
 xlabel("Number of Iterations [-]")
-subtitle("Almog Dobrescu 214254252")
 legend({'Lx', 'Ly'},'FontSize',11 ,'Location','northeast')
 % exportgraphics(fig2, 'grap1.2.png','Resolution',1200);
 
@@ -131,7 +129,6 @@ grid minor
 title("Number of Iterations for fixed r and different omega| psi=BC phi=BC");
 ylabel("Number of Iterations [-]")
 xlabel("omega [-]")
-subtitle("Almog Dobrescu 214254252")
 % legend({''},'FontSize',11 ,'Location','northeast')
 % exportgraphics(fig3, 'grap3.1.png','Resolution',1200);
 
