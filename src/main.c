@@ -1,4 +1,4 @@
-#include <stdio.h>
+
 #include "mesher.h"
 
 #define ON_LINUX 0
@@ -11,17 +11,33 @@
     #undef ON_LINUX
     #define ON_LINUX 1
     int create_empty_dir(char *parent_directory);
+    int create_output_dir(char *output_dir, Input_param input_param);
 #endif
 
-void read_input(char *input_file, int *NACA, int *ni, int *nj, int *num_points_on_airfoil, double *delta_y, double *XSF, double *YSF, double *r, double *omega);
-void output_metadata(char *output_dir, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega);
-void mat_output_to_file(FILE *fp, double *data, int ni, int nj);
-void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, int ni, int nj);
+#ifndef INPUT_PARAM
+    #define INPUT_PARAM
+    typedef struct {
+        int NACA;
+        int ni;
+        int nj;
+        int num_points_on_airfoil;
+        double delta_y;
+        double XSF;
+        double YSF;
+        double r;
+        double omega;
+    } Input_param;
+#endif
+
+void read_input(char *input_file, Input_param *input_param);
+void output_metadata(char *output_dir, Input_param input_param);
+void mat_output_to_file(FILE *fp, double *data, Input_param input_param);
+void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, Input_param input_param);
 
 int main(int argc, char const *argv[])
 {
     /* Geting the input file and output directory */
-    char input_file[MAXDIR], output_dir[MAXDIR], temp_word[MAXDIR]; 
+    char input_file[MAXDIR], output_dir[MAXDIR]; 
 
     if (--argc != 2) {
         fprintf(stderr, "%s:%d: [ERROR] not right usage\nUsage: main 'input file'\n", __FILE__, __LINE__);
@@ -40,82 +56,26 @@ int main(int argc, char const *argv[])
     }
 
     /* Input variables */
-    double delta_y, XSF, YSF, r, omega;
-    int NACA, ni, nj, num_points_on_airfoil;
+    Input_param input_param;
 
-    read_input(input_file, &NACA, &ni, &nj, &num_points_on_airfoil, &delta_y, &XSF, &YSF, &r, &omega);
+    read_input(input_file, &input_param);
 
     /* Checking that I got the right input */
-    dprintINT(NACA);
-    dprintINT(ni);
-    dprintINT(nj);
-    dprintINT(num_points_on_airfoil);
-    dprintD(delta_y);
-    dprintD(XSF);
-    dprintD(YSF);
-    dprintD(r);
-    dprintD(omega);
+    dprintINT(input_param.NACA);
+    dprintINT(input_param.ni);
+    dprintINT(input_param.nj);
+    dprintINT(input_param.num_points_on_airfoil);
+    dprintD(input_param.delta_y);
+    dprintD(input_param.XSF);
+    dprintD(input_param.YSF);
+    dprintD(input_param.r);
+    dprintD(input_param.omega);
     printf("--------------------\n");
 
     /* creating output directory */
     printf("[INFO] creating output directory\n");
     if (ON_LINUX) {
-        if (create_empty_dir(output_dir) != 0) {
-            fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
-            return 1;
-        }
-        sprintf(temp_word, "/NACA%d", NACA);
-        strcat(output_dir, temp_word);
-        if (create_empty_dir(output_dir) != 0) {
-            fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
-            return 1;
-        }
-        sprintf(temp_word, "/ni%d", ni);
-        strcat(output_dir, temp_word);
-        if (create_empty_dir(output_dir) != 0) {
-            fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
-            return 1;
-        }
-        sprintf(temp_word, "/nj%d", nj);
-        strcat(output_dir, temp_word);
-        if (create_empty_dir(output_dir) != 0) {
-            fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
-            return 1;
-        }
-        sprintf(temp_word, "/num_points_on_airfoil%d", num_points_on_airfoil);
-        strcat(output_dir, temp_word);
-        if (create_empty_dir(output_dir) != 0) {
-            fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
-            return 1;
-        }
-        sprintf(temp_word, "/delta_y%g", delta_y);
-        strcat(output_dir, temp_word);
-        if (create_empty_dir(output_dir) != 0) {
-            fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
-            return 1;
-        }
-        sprintf(temp_word, "/XSF%g", XSF);
-        strcat(output_dir, temp_word);
-        if (create_empty_dir(output_dir) != 0) {
-            fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
-            return 1;
-        }
-        sprintf(temp_word, "/YSF%g", YSF);
-        strcat(output_dir, temp_word);
-        if (create_empty_dir(output_dir) != 0) {
-            fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
-            return 1;
-        }
-        sprintf(temp_word, "/r%g", r);
-        strcat(output_dir, temp_word);
-        if (create_empty_dir(output_dir) != 0) {
-            fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
-            return 1;
-        }
-        sprintf(temp_word, "/omega%g", omega);
-        strcat(output_dir, temp_word);
-        if (create_empty_dir(output_dir) != 0) {
-            fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        if (create_output_dir(output_dir, input_param)) {
             return 1;
         }
     }
@@ -124,14 +84,14 @@ int main(int argc, char const *argv[])
     printf("[INFO] Meshing\n");
     double *x_mat, *y_mat;
 
-    int mesh_rc = create_mesh(&x_mat, &y_mat, NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, output_dir);
+    int mesh_rc = create_mesh(&x_mat, &y_mat, input_param, output_dir);
     if (mesh_rc != 0) {
         fprintf(stderr, "%s:%d: [ERROR] creating mesh\n", __FILE__, __LINE__);
         return 1;
     }
-    output_mesh(output_dir, x_mat, y_mat, ni, nj);
+    output_mesh(output_dir, x_mat, y_mat, input_param);
 
-    output_metadata(output_dir, NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega);
+    output_metadata(output_dir, input_param);
 
     return 0;
 }
@@ -177,12 +137,78 @@ int create_empty_dir(char *parent_directory)
     }
     return 0;
 }
+
+/* return non zero value on error */
+int create_output_dir(char *output_dir, Input_param input_param)
+{
+    char temp_word[MAXDIR];
+
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/NACA%d", input_param.NACA);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/ni%d", input_param.ni);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/nj%d", input_param.nj);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/num_points_on_airfoil%d", input_param.num_points_on_airfoil);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/delta_y%g", input_param.delta_y);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/XSF%g", input_param.XSF);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/YSF%g", input_param.YSF);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/r%g", input_param.r);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/omega%g", input_param.omega);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    return 0;
+}
 #endif
 
 /* sets 'flags' and variables according to the input file
 argument list:
 dir - the directory of the input file */
-void read_input(char *input_file, int *NACA, int *ni, int *nj, int *num_points_on_airfoil, double *delta_y, double *XSF, double *YSF, double *r, double *omega)
+void read_input(char *input_file, Input_param *input_param)
 {
     FILE *fp = fopen(input_file, "rt");
     char current_word[MAXWORD];
@@ -192,39 +218,39 @@ void read_input(char *input_file, int *NACA, int *ni, int *nj, int *num_points_o
         exit(1);
     }
 
-    /* Seting the input varibles according to the input file */
+    /* Seting the input variables according to the input file */
     while(fscanf(fp, "%s", current_word) != EOF) {  
         if (!strcmp(current_word, "NACA")) {
-            fscanf(fp, "%d", NACA);
+            fscanf(fp, "%d", &(input_param->NACA));
         } else if (!strcmp(current_word, "ni")) {
-            fscanf(fp, "%d", ni);
+            fscanf(fp, "%d", &(input_param->ni));
         } else if (!strcmp(current_word, "nj")) {
-            fscanf(fp, "%d ", nj);
+            fscanf(fp, "%d ", &(input_param->nj));
         } else if (!strcmp(current_word, "num_points_on_airfoil")) {
-            fscanf(fp, "%d ", num_points_on_airfoil);
+            fscanf(fp, "%d ", &(input_param->num_points_on_airfoil));
         } else if (!strcmp(current_word, "delta_y")) {
             fscanf(fp, "%g", &temp); /* fscanf returns a float, so I cast it to double */
-            *delta_y = (double)temp;
+            input_param->delta_y = (double)temp;
         } else if (!strcmp(current_word, "XSF")) {
             fscanf(fp, "%g", &temp); /* fscanf returns a float, so I cast it to double */
-            *XSF = (double)temp;
+            input_param->XSF = (double)temp;
         } else if (!strcmp(current_word, "YSF")) {
             fscanf(fp, "%g", &temp); /* fscanf returns a float, so I cast it to double */
-            *YSF = (double)temp;
+            input_param->YSF = (double)temp;
         } else if (!strcmp(current_word, "r")) {
             fscanf(fp, "%g", &temp);
-            *r = (double)temp;
+            input_param->r = (double)temp;
         } else if (!strcmp(current_word, "omega")) {
             fscanf(fp, "%g", &temp);
-            *omega = (double)temp;
+            input_param->omega = (double)temp;
         }
     }
 
-    if (!(*ni % 2)) {
+    if (!(input_param->ni % 2)) {
         fprintf(stderr, "%s:%d: [ERROR] i_max must be even\n", __FILE__, __LINE__);
         exit(1);
     }
-    if (!(*num_points_on_airfoil % 2)) {
+    if (!(input_param->num_points_on_airfoil % 2)) {
         fprintf(stderr, "%s:%d: [ERROR] num_points_on_airfoil must be odd\n", __FILE__, __LINE__);
         exit(1);
     }
@@ -232,7 +258,7 @@ void read_input(char *input_file, int *NACA, int *ni, int *nj, int *num_points_o
     fclose(fp);
 }
 
-void output_metadata(char *output_dir, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega)
+void output_metadata(char *output_dir, Input_param input_param)
 {
     char temp_word[MAXWORD];
     FILE *metadata_file;
@@ -246,24 +272,24 @@ void output_metadata(char *output_dir, int NACA, int ni, int nj, int num_points_
     }
 
     fprintf(metadata_file, "%s, %s, %s, %s, %s, %s, %s, %s, %s\n", "NACA", "ni", "nj", "num_points_on_airfoil", "delta_y", "XSF", "YSF", "r", "omega");
-    fprintf(metadata_file, "%d, %d, %d, %d, %f, %f, %f, %f, %f\n", NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega);
+    fprintf(metadata_file, "%d, %d, %d, %d, %f, %f, %f, %f, %f\n", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega);
 
     fclose(metadata_file);
 }
 
-void mat_output_to_file(FILE *fp, double *data, int ni, int nj)
+void mat_output_to_file(FILE *fp, double *data, Input_param input_param)
 {
     int i, j;
     
-    for (j = 0; j < nj; j++) {
-        for (i = 0; i < ni; i++) {
-            fprintf(fp, "%g ", data[offset2d(i, j, ni)]);
+    for (j = 0; j < input_param.nj; j++) {
+        for (i = 0; i < input_param.ni; i++) {
+            fprintf(fp, "%g ", data[offset2d(i, j, input_param.ni)]);
         }
         fprintf(fp, "\n");
     }
 }
 
-void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, int ni, int nj)
+void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, Input_param input_param)
 {
     char temp_word[MAXDIR];
     FILE *fp;
@@ -275,12 +301,12 @@ void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
         exit(1);
     }
 
-    fprintf(fp, "ni\n%d\n\nnj\n%d\n\n", ni, nj);
+    fprintf(fp, "ni\n%d\n\nnj\n%d\n\n", input_param.ni, input_param.nj);
     fprintf(fp, "x_vals\n");
-    mat_output_to_file(fp, x_vals_mat, ni, nj);
+    mat_output_to_file(fp, x_vals_mat, input_param);
     fprintf(fp, "\n");
     fprintf(fp, "y_vals\n");
-    mat_output_to_file(fp, y_vals_mat, ni, nj);
+    mat_output_to_file(fp, y_vals_mat, input_param);
 
     fclose(fp);
 }

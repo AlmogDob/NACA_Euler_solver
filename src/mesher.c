@@ -1,8 +1,18 @@
 #include "mesher.h"
 
 /* return 0 on success */
-int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega, char *output_dir)
+int create_mesh(double **x_mat, double **y_mat, Input_param input_param, char *output_dir)
 {
+    int NACA = input_param.NACA;
+    int ni = input_param.ni;
+    int nj = input_param.nj;
+    int num_points_on_airfoil = input_param.num_points_on_airfoil;
+    double delta_y = input_param.delta_y;
+    double XSF = input_param.XSF;
+    double YSF = input_param.YSF;
+    double r = input_param.r;
+    double omega = input_param.omega;
+
     double psi_valuse = -1, phi_valuse = -1;
     int i_max = ni-1;
     int j_max = nj-1;

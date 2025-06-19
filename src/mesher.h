@@ -63,7 +63,22 @@ typedef struct {
     double y;
 } Vec2;
 
-int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega, char *output_dir);
+#ifndef INPUT_PARAM
+    #define INPUT_PARAM
+    typedef struct {
+        int NACA;
+        int ni;
+        int nj;
+        int num_points_on_airfoil;
+        double delta_y;
+        double XSF;
+        double YSF;
+        double r;
+        double omega;
+    } Input_param;
+#endif
+
+int create_mesh(double **x_mat, double **y_mat, Input_param input_param, char *output_dir);
 void output_solution(char *file, double *data, int i_max, int j_max);
 int offset2d(int i, int j, int ni);
 void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, double *phi_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max, int i_min, int j_min, int NACA, double phi_valuse, double psi_valuse);
