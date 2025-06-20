@@ -1,8 +1,8 @@
-CFLAGS = -Wall -Wextra -lm -std=c99
+CFLAGS = -Wall -Wextra -std=c99 -lm -lsqlite3
 CCHECKS = -fsanitize=address
 O_FILES = ./build/main ./build/main.o ./build/mesher.o
 
-# IN_FILE=mesher_input.txt make main
+# IN_FILE=mesher_input.txt OUT_DIR=./results make main
 main: build_mesher build_main link_main
 	@echo
 	./build/main $(IN_FILE) $(OUT_DIR)

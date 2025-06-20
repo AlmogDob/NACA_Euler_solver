@@ -1,5 +1,18 @@
 
 #include "mesher.h"
+#include <sqlite3.h>
+
+typedef struct {
+    int NACA;
+    int ni;
+    int nj;
+    int num_points_on_airfoil;
+    double delta_y;
+    double XSF;
+    double YSF;
+    double r;
+    double omega;
+} Input_param;
 
 #define ON_LINUX 0
 #ifdef __linux__
@@ -14,25 +27,12 @@
     int create_output_dir(char *output_dir, Input_param input_param);
 #endif
 
-#ifndef INPUT_PARAM
-    #define INPUT_PARAM
-    typedef struct {
-        int NACA;
-        int ni;
-        int nj;
-        int num_points_on_airfoil;
-        double delta_y;
-        double XSF;
-        double YSF;
-        double r;
-        double omega;
-    } Input_param;
-#endif
-
 void read_input(char *input_file, Input_param *input_param);
 void output_metadata(char *output_dir, Input_param input_param);
 void mat_output_to_file(FILE *fp, double *data, Input_param input_param);
 void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, Input_param input_param);
+sqlite3 *setup_DB(char * db_name);
+int output_input_param_to_DB(sqlite3 *db, Input_param input_param);
 
 int main(int argc, char const *argv[])
 {
@@ -81,17 +81,37 @@ int main(int argc, char const *argv[])
     }
 
     /* creating mesh */
-    printf("[INFO] Meshing\n");
+    printf("[INFO] meshing\n");
     double *x_mat, *y_mat;
 
-    int mesh_rc = create_mesh(&x_mat, &y_mat, input_param, output_dir);
+    int mesh_rc = create_mesh(&x_mat, &y_mat, input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, output_dir);
     if (mesh_rc != 0) {
         fprintf(stderr, "%s:%d: [ERROR] creating mesh\n", __FILE__, __LINE__);
         return 1;
     }
-    output_mesh(output_dir, x_mat, y_mat, input_param);
 
+    /* saving mesh */
+    printf("[INFO] saving mesh\n");
+    output_mesh(output_dir, x_mat, y_mat, input_param);
     output_metadata(output_dir, input_param);
+    char *err_msg = 0;
+    sqlite3 *db = setup_DB("NACA.db");
+    if (!db) {
+        return 1;
+    }
+    char *sql = "CREATE TABLE IF NOT EXISTS NACA_data(ID INTEGER PRIMARY KEY, NACA INTEGER, ni INTEGER, nj INTEGER, num_points_on_airfoil INTEGER, delta_y REAL, XSF REAL, YSF REAL, r REAL, omega REAL)";
+    int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "%s:%d: [ERROR] cannot exec command: %s\n", __FILE__, __LINE__, sqlite3_errmsg(db));
+        sqlite3_free(err_msg);
+        sqlite3_close(db);
+        return 1;
+    }
+
+    if (output_input_param_to_DB(db, input_param) != SQLITE_OK) {
+        return 1;
+    }
+    sqlite3_close(db);
 
     return 0;
 }
@@ -309,4 +329,43 @@ void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, Input
     mat_output_to_file(fp, y_vals_mat, input_param);
 
     fclose(fp);
+}
+
+sqlite3 *setup_DB(char *db_name)
+{
+    sqlite3 *db;
+    int rc = sqlite3_open(db_name, &db);
+
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "%s:%d: [ERROR] cannot open database %s\n", __FILE__, __LINE__, sqlite3_errmsg(db));
+        return NULL;
+    }
+
+    return db;
+}
+
+/* saving input param to the DB and deleting if there are duplicates;
+returning the return code form the 'sqlite3_exec' function. */
+int output_input_param_to_DB(sqlite3 *db, Input_param input_param)
+{
+    char temp_sql[MAXWORD];
+    sprintf(temp_sql, "insert into NACA_data(NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega) values(%d, %d, %d, %d, %f, %f, %f, %f, %f);", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega);
+
+    char *err_msg = 0;
+    int rc = sqlite3_exec(db ,temp_sql, 0, 0, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "%s:%d: [ERROR] cannot write to DB %s\n", __FILE__, __LINE__, err_msg);
+        return SQLITE_ERROR;
+    }
+
+    strcpy(temp_sql, "");
+    sprintf(temp_sql, "DELETE FROM NACA_data WHERE ID NOT IN (SELECT MIN(ID) FROM NACA_data GROUP BY NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega);");
+    err_msg = 0;
+    rc = sqlite3_exec(db ,temp_sql, 0, 0, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "%s:%d: [ERROR] cannot write to DB %s\n", __FILE__, __LINE__, err_msg);
+        return SQLITE_ERROR;
+    }
+
+    return rc;
 }
