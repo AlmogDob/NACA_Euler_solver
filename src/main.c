@@ -1,4 +1,3 @@
-
 #include "mesher.h"
 #include <sqlite3.h>
 
@@ -32,7 +31,7 @@ void output_metadata(char *output_dir, Input_param input_param);
 void mat_output_to_file(FILE *fp, double *data, Input_param input_param);
 void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, Input_param input_param);
 sqlite3 *setup_DB(char * db_name);
-int output_input_param_to_DB(sqlite3 *db, Input_param input_param);
+int output_input_param_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_param input_param);
 
 int main(int argc, char const *argv[])
 {
@@ -40,7 +39,7 @@ int main(int argc, char const *argv[])
     char input_file[MAXDIR], output_dir[MAXDIR]; 
 
     if (--argc != 2) {
-        fprintf(stderr, "%s:%d: [ERROR] not right usage\nUsage: main 'input file'\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s:%d: [ERROR] not right usage\nUsage: main 'input file' 'output directory\n", __FILE__, __LINE__);
         return 1;
     }
 
@@ -94,21 +93,12 @@ int main(int argc, char const *argv[])
     printf("[INFO] saving mesh\n");
     output_mesh(output_dir, x_mat, y_mat, input_param);
     output_metadata(output_dir, input_param);
-    char *err_msg = 0;
     sqlite3 *db = setup_DB("NACA.db");
     if (!db) {
         return 1;
     }
-    char *sql = "CREATE TABLE IF NOT EXISTS NACA_data(ID INTEGER PRIMARY KEY, NACA INTEGER, ni INTEGER, nj INTEGER, num_points_on_airfoil INTEGER, delta_y REAL, XSF REAL, YSF REAL, r REAL, omega REAL)";
-    int rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
-    if (rc != SQLITE_OK) {
-        fprintf(stderr, "%s:%d: [ERROR] cannot exec command: %s\n", __FILE__, __LINE__, sqlite3_errmsg(db));
-        sqlite3_free(err_msg);
-        sqlite3_close(db);
-        return 1;
-    }
 
-    if (output_input_param_to_DB(db, input_param) != SQLITE_OK) {
+    if (output_input_param_to_DB(db, x_mat, y_mat, input_param) != SQLITE_OK) {
         return 1;
     }
     sqlite3_close(db);
@@ -334,6 +324,7 @@ void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, Input
 sqlite3 *setup_DB(char *db_name)
 {
     sqlite3 *db;
+    char *err_msg = 0;
     int rc = sqlite3_open(db_name, &db);
 
     if (rc != SQLITE_OK) {
@@ -341,20 +332,51 @@ sqlite3 *setup_DB(char *db_name)
         return NULL;
     }
 
+    char *sql = "CREATE TABLE IF NOT EXISTS NACA_data(ID INTEGER PRIMARY KEY, NACA INTEGER NOT NULL, ni INTEGER NOT NULL, nj INTEGER NOT NULL, num_points_on_airfoil INTEGER NOT NULL, delta_y REAL NOT NULL, XSF REAL NOT NULL, YSF REAL NOT NULL, r REAL NOT NULL, omega REAL NOT NULL, x_mat BLOB, y_mat BLOB)";
+    rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "%s:%d: [ERROR] cannot exec command: %s\n", __FILE__, __LINE__, sqlite3_errmsg(db));
+        sqlite3_free(err_msg);
+        sqlite3_close(db);
+        return NULL;
+    }
+
     return db;
 }
 
 /* saving input param to the DB and deleting if there are duplicates;
-returning the return code form the 'sqlite3_exec' function. */
-int output_input_param_to_DB(sqlite3 *db, Input_param input_param)
+returning the error return code. */
+int output_input_param_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_param input_param)
 {
     char temp_sql[MAXWORD];
-    sprintf(temp_sql, "insert into NACA_data(NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega) values(%d, %d, %d, %d, %f, %f, %f, %f, %f);", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega);
-
     char *err_msg = 0;
-    int rc = sqlite3_exec(db ,temp_sql, 0, 0, &err_msg);
+
+    strcpy(temp_sql, "");
+    sprintf(temp_sql, "insert into NACA_data(NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, x_mat, y_mat) values(%d, %d, %d, %d, %f, %f, %f, %f, %f, ?, ?);", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega);
+    sqlite3_stmt *statement_pointer;
+    int rc = sqlite3_prepare_v2(db, temp_sql, -1, &statement_pointer, 0);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "%s:%d: [ERROR] cannot write to DB %s\n", __FILE__, __LINE__, err_msg);
+        fprintf(stderr, "%s:%d: [ERROR] failed to prepare statement %s\n", __FILE__, __LINE__, temp_sql);
+        return SQLITE_ERROR;
+    }
+    rc = sqlite3_bind_blob(statement_pointer, 1, x_mat, input_param.ni * input_param.nj * sizeof(double), SQLITE_STATIC);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "%s:%d: [ERROR] failed to bind x values\n", __FILE__, __LINE__);
+        return SQLITE_ERROR;
+    }
+    rc = sqlite3_bind_blob(statement_pointer, 2, y_mat, input_param.ni * input_param.nj * sizeof(double), SQLITE_STATIC);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "%s:%d: [ERROR] failed to bind y values\n", __FILE__, __LINE__);
+        return SQLITE_ERROR;
+    }
+    rc = sqlite3_step(statement_pointer);
+    if (rc != SQLITE_DONE) {
+        fprintf(stderr, "%s:%d: [ERROR] failed to step the statement of x and y mat\n", __FILE__, __LINE__);
+        return SQLITE_ERROR;
+    }
+    rc = sqlite3_finalize(statement_pointer);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "%s:%d: [ERROR] failed to finalize the statement of x and y mat\n", __FILE__, __LINE__);
         return SQLITE_ERROR;
     }
 

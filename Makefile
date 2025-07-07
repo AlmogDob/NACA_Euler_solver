@@ -1,6 +1,7 @@
 CFLAGS = -Wall -Wextra -std=c99 -lm -lsqlite3
 CCHECKS = -fsanitize=address
-O_FILES = ./build/main ./build/main.o ./build/mesher.o
+O_FILES_MAIN = ./build/main ./build/main.o ./build/mesher.o
+O_FILES_TEMP = ./build/temp ./build/temp.o ./build/mesher.o
 
 # IN_FILE=mesher_input.txt OUT_DIR=./results make main
 main: build_mesher build_main link_main
@@ -9,7 +10,7 @@ main: build_mesher build_main link_main
 
 	@echo
 	@echo [INFO] removing build files
-	rm -r $(O_FILES)
+	rm -r $(O_FILES_MAIN)
 
 	@echo
 	@echo [INFO] done
@@ -26,13 +27,12 @@ link_main: ./build/mesher.o ./build/main.o
 	@echo [INFO] linking
 	@gcc ./build/main.o ./build/mesher.o $(CFLAGS) -o ./build/main
 
-
 debug_main: debug_build_mesher debug_build_main link_main
 	gdb ./build/main
 
 	@echo
 	@echo [INFO] removing build files
-	rm -r $(O_FILES)
+	rm -r $(O_FILES_MAIN)
 
 	@echo
 	@echo [INFO] done
@@ -45,6 +45,50 @@ debug_build_mesher: ./src/mesher.c
 	@echo [INFO] building mesher
 	@gcc -c ./src/mesher.c $(CFLAGS) -ggdb -o ./build/mesher.o
 
+profile_main: profile_build_mesher profile_build_main profile_link_main
+	./build/main $(IN_FILE) $(OUT_DIR)
+	@echo
+	gprof ./build/main gmon.out | /home/almog/.local/bin/gprof2dot | dot -Tpng -Gdpi=200 -o output.png
+	# @sleep 0.1
+	imview ./output.png
+	@echo
+	rm ./gmon.out ./output.png 
+	@echo
+	@echo [INFO] removing build files
+	rm -r $(O_FILES_MAIN)
+
+profile_link_main: ./build/mesher.o ./build/main.o
+	@echo [INFO] linking
+	@gcc ./build/main.o ./build/mesher.o $(CFLAGS) -p -ggdb -o ./build/main
+
+profile_build_main: 
+	@echo [INFO] building main
+	@gcc -c ./src/main.c $(CFLAGS) -p -ggdb -o ./build/main.o
+
+profile_build_mesher: ./src/mesher.c
+	@echo [INFO] building mesher
+	@gcc -c ./src/mesher.c $(CFLAGS) -p -ggdb -o ./build/mesher.o
 
 # valgrind -s --leak-check=full ./build/mesher
 # cloc --exclude-lang=JSON,make .
+
+###############################################################
+
+temp: build_mesher build_temp link_temp
+	@echo
+	./build/temp $(IN_FILE) $(OUT_DIR)
+
+	@echo
+	@echo [INFO] removing build files
+	rm -r $(O_FILES_TEMP)
+
+	@echo
+	@echo [INFO] done
+
+build_temp: 
+	@echo [INFO] building temp
+	@gcc -c ./src/temp.c $(CFLAGS) -o ./build/temp.o
+
+link_temp: ./build/mesher.o ./build/temp.o
+	@echo [INFO] linking
+	@gcc ./build/temp.o ./build/mesher.o $(CFLAGS) -o ./build/temp

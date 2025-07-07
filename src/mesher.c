@@ -265,10 +265,10 @@ argument list:
 i - x position
 j - y position
 ni - stride */
-int offset2d(int i, int j, int ni)
-{
-    return j * ni + i;
-}
+// int offset2d(int i, int j, int ni)
+// {
+//     return j * ni + i;
+// }
 
 /* set inital valsuse of the mash points 
 argument list:
