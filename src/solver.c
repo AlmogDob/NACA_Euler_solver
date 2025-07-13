@@ -53,18 +53,18 @@ void RHS(double *S, double *W, double *Q, double *J_vals_mat, double *dxi_dx_mat
 void advance_Q(double *next_Q, double *current_Q ,double *S, double *J_vals_mat, int ni, int nj);
 void copy_3Dmat_to_3Dmat(double *dst, double *src, int ni, int nj);
 int smooth(double *q, double *s, double *jac, double *xx, double *xy, double *yx, double *yy, int id, int jd, double *s2, double *rspec, double *qv, double *dd, double epse, double gamma, double fsmach, double dt);
-void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat);
-void output_mat2D_to_file(FILE *fp, double *data);
-void output_layer_of_mat3D_to_file(FILE *fp, double *data, int layer);
-void calculate_A_hat_j_const(double *dst, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int i, int j);
-void calculate_B_hat_i_const(double *dst, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int j);
+void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj);
+void output_mat2D_to_file(FILE *fp, double *data, int ni, int nj);
+void output_layer_of_mat3D_to_file(FILE *fp, double *data, int layer, int ni, int nj);
+void calculate_A_hat_j_const(double *dst, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int i, int j, int ni, int nj);
+void calculate_B_hat_i_const(double *dst, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int j, int ni, int nj);
 int smoothx(double *q, double *xx, double *xy, int id, int jd, double *a, double *b, double *c, int j,double *jac, double *drr, double *drp, double *rspec, double *qv, double *dd, double epsi, double gamma, double fsmach, double dt);
 int smoothy(double *q, double *yx, double *yy, int id, int jd, double *a, double *b, double *c, int i,double *jac, double *drr, double *drp, double *rspec, double *qv, double *dd, double epsi, double gamma, double fsmach, double dt);
-void LHSX(double *A, double *B, double *C, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int j);
-void LHSY(double *A, double *B, double *C, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i);
+void LHSX(double *A, double *B, double *C, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int j, int ni, int nj);
+void LHSY(double *A, double *B, double *C, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int ni, int nj);
 int btri4s(double *a, double *b, double *c, double *f, int kd, int ks, int ke);
-double calculate_S_norm(double *S);
-double step(double *A, double *B, double *C, double *D, double *current_Q, double *S, double *W, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd);
+double calculate_S_norm(double *S, int ni, int nj);
+double step(double *A, double *B, double *C, double *D, double *current_Q, double *S, double *W, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd, int ni, int nj);
 
 /* global variables */
 int max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
@@ -235,8 +235,8 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
     copy_3Dmat_to_3Dmat(first_Q, current_Q, ni, nj);
     
     for (int iteration = 0; iteration < max_iteration; iteration++) {
-        apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat);
-        current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp, rspec, qv, dd);
+        apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj);
+        current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp, rspec, qv, dd, ni, nj);
         if (max_S_norm < fabs(current_S_norm)) {
             max_S_norm = fabs(current_S_norm);
         }
@@ -379,14 +379,14 @@ void output_solution(const char *output_dir, double *current_Q, double *U_mat, d
     ni_nj_fp = fopen(temp_dir, "wt");
 
     /* save data */
-    output_mat2D_to_file(x_fp, x_vals_mat);
-    output_mat2D_to_file(y_fp, y_vals_mat);
-    output_mat2D_to_file(U_fp, U_mat);
-    output_mat2D_to_file(V_fp, V_mat);
-    output_layer_of_mat3D_to_file(Q0_fp, current_Q, 0);
-    output_layer_of_mat3D_to_file(Q1_fp, current_Q, 1);
-    output_layer_of_mat3D_to_file(Q2_fp, current_Q, 2);
-    output_layer_of_mat3D_to_file(Q3_fp, current_Q, 3);
+    output_mat2D_to_file(x_fp, x_vals_mat, ni, nj);
+    output_mat2D_to_file(y_fp, y_vals_mat, ni, nj);
+    output_mat2D_to_file(U_fp, U_mat, ni, nj);
+    output_mat2D_to_file(V_fp, V_mat, ni, nj);
+    output_layer_of_mat3D_to_file(Q0_fp, current_Q, 0, ni, nj);
+    output_layer_of_mat3D_to_file(Q1_fp, current_Q, 1, ni, nj);
+    output_layer_of_mat3D_to_file(Q2_fp, current_Q, 2, ni, nj);
+    output_layer_of_mat3D_to_file(Q3_fp, current_Q, 3, ni, nj);
     fprintf(ni_nj_fp, "%d %d %d %d %d", ni, nj, i_TEL, i_LE, i_TEU);
 
     fclose(x_fp);
@@ -994,7 +994,7 @@ dxi_dy_mat        - 1D array of 2D matrix
 deta_dx_mat       - 1D array of 2D matrix
 deta_dy_mat       - 1D array of 2D matrix
 */
-void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat)
+void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj)
 {
     int i, k;
     double J_j0, u_j1, v_j1, p_j1, e_j1, rho_j0, rho_j1, p_j0, e_j0, u_j0,
@@ -1005,14 +1005,14 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_
 /* wall BC */
     for (i = i_TEL; i <= i_TEU; i++) {
 
-        calculate_u_and_v(&u_j1, &v_j1, Q, i, 1);        
+        calculate_u_and_v(&u_j1, &v_j1, Q, i, 1, ni, nj);
         contravariant_velocities(&U1, &V1, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
-                                 deta_dy_mat, Q, i, 1);
+                                 deta_dy_mat, Q, i, 1, ni, nj);
 
         /* u_i,0 and v_i,0 */
-        deta_dx_j0 = deta_dx_mat[offset2d(i, 0, ni)];
-        deta_dy_j0 = deta_dy_mat[offset2d(i, 0, ni)];
-        J_j0 = J_vals_mat[offset2d(i, 0, ni)];
+        deta_dx_j0 = deta_dx_mat[offset2d(i, 0, ni, nj)];
+        deta_dy_j0 = deta_dy_mat[offset2d(i, 0, ni, nj)];
+        J_j0 = J_vals_mat[offset2d(i, 0, ni, nj)];
 
 
         u_j0 = U1 * deta_dy_j0 / J_j0;
@@ -1038,8 +1038,8 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_
     }
 
 /* trailing edge */
-    calculate_u_and_v(&u_iTEU_jTEU, &v_iTEU_jTEU, Q, i_TEU, 0);
-    calculate_u_and_v(&u_iTEL_jTEL, &v_iTEL_jTEL, Q, i_TEL, 0);
+    calculate_u_and_v(&u_iTEU_jTEU, &v_iTEU_jTEU, Q, i_TEU, 0, ni, nj);
+    calculate_u_and_v(&u_iTEL_jTEL, &v_iTEL_jTEL, Q, i_TEL, 0, ni, nj);
 
     rho_iTEU_jTEU = Q[offset3d(i_TEU, 0, 0, ni, nj)];
     rho_iTEL_jTEL = Q[offset3d(i_TEL, 0, 0, ni, nj)];
@@ -1087,13 +1087,13 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_
 argument list:
 fp   - file pointer to output file
 data - 1D array of 2D matrix */
-void output_mat2D_to_file(FILE *fp, double *data)
+void output_mat2D_to_file(FILE *fp, double *data, int ni, int nj)
 {
     int i, j, j_max = nj - 1, i_max = ni - 1;
     
     for (j = 0; j < j_max+1; j++) {
         for (i = 0; i < i_max+1; i++) {
-            fprintf(fp, "%g ", data[offset2d(i, j, i_max+1)]);
+            fprintf(fp, "%g ", data[offset2d(i, j, i_max+1, nj)]);
         }
         fprintf(fp, "\n");
     }
@@ -1104,7 +1104,7 @@ argument list:
 fp    - file pointer to output file
 data  - 1D array of 3D matrix 
 layer - the third direction index */
-void output_layer_of_mat3D_to_file(FILE *fp, double *data, int layer)
+void output_layer_of_mat3D_to_file(FILE *fp, double *data, int layer, int ni, int nj)
 {
     int i, j, j_max = nj - 1, i_max = ni - 1;
     
@@ -1123,17 +1123,17 @@ Q           - 1D array of 3D matrix
 dxi_dx_mat  - 1D array of 2D matrix
 dxi_dy_mat  - 1D array of 2D matrix
 i, j        - the points coordinates */
-void calculate_A_hat_j_const(double *dst, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int i, int j)
+void calculate_A_hat_j_const(double *dst, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int i, int j, int ni, int nj)
 {
     /* xi (i) direction */
     double u, v, phi_square, theta, gamma1, gamma2, beta, energy, rho,
     dxi_dx, dxi_dy;
 
 
-    calculate_u_and_v(&u, &v, Q, i, j);
+    calculate_u_and_v(&u, &v, Q, i, j, ni, nj);
 
-    dxi_dx = dxi_dx_mat[offset2d(i, j, ni)];
-    dxi_dy = dxi_dy_mat[offset2d(i, j, ni)];
+    dxi_dx = dxi_dx_mat[offset2d(i, j, ni, nj)];
+    dxi_dy = dxi_dy_mat[offset2d(i, j, ni, nj)];
 
     rho = Q[offset3d(i, j, 0, ni, nj)];
     energy = Q[offset3d(i, j, 3, ni, nj)];
@@ -1173,17 +1173,17 @@ Q            - 1D array of 3D matrix
 deta_dx_mat  - 1D array of 2D matrix
 deta_dy_mat  - 1D array of 2D matrix
 i, j         - the points coordinates */
-void calculate_B_hat_i_const(double *dst, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int j)
+void calculate_B_hat_i_const(double *dst, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int j, int ni, int nj)
 {
     /* eta (j) direction */
     double u, v, phi_square, theta, gamma1, gamma2, beta, energy, rho,
     deta_dx, deta_dy;
 
 
-    calculate_u_and_v(&u, &v, Q, i, j);
+    calculate_u_and_v(&u, &v, Q, i, j, ni, nj);
 
-    deta_dx = deta_dx_mat[offset2d(i, j, ni)];
-    deta_dy = deta_dy_mat[offset2d(i, j, ni)];
+    deta_dx = deta_dx_mat[offset2d(i, j, ni, nj)];
+    deta_dy = deta_dy_mat[offset2d(i, j, ni, nj)];
 
     rho = Q[offset3d(i, j, 0, ni, nj)];
     energy = Q[offset3d(i, j, 3, ni, nj)];
@@ -1397,12 +1397,12 @@ Q          - 1D array of 3D matrix
 dxi_dx_mat - 1D array of 2D matrix
 dxi_dy_mat - 1D array of 2D matrix
 j          - the second direction index */
-void LHSX(double *A, double *B, double *C, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int j)
+void LHSX(double *A, double *B, double *C, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int j, int ni, int nj)
 {
     int i, n, m; 
 
     for (i = 0; i < ni; i++) {
-        calculate_A_hat_j_const(B, Q, dxi_dx_mat, dxi_dy_mat, i, j);
+        calculate_A_hat_j_const(B, Q, dxi_dx_mat, dxi_dy_mat, i, j, ni, nj);
     }
     for (i = 1; i < ni - 1; i++) {
         for (n = 0; n < 4; n++) {
@@ -1435,7 +1435,7 @@ Q           - 1D array of 3D matrix
 deta_dx_mat - 1D array of 2D matrix
 deta_dy_mat - 1D array of 2D matrix
 i           - the second direction index */
-void LHSY(double *A, double *B, double *C, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i)
+void LHSY(double *A, double *B, double *C, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int ni, int nj)
 {
     int j, n, m; 
 
@@ -1450,7 +1450,7 @@ void LHSY(double *A, double *B, double *C, double *Q, double *deta_dx_mat, doubl
     }
 
     for (j = 0; j < nj; j++) {
-        calculate_B_hat_i_const(B, Q, deta_dx_mat, deta_dy_mat, i, j);
+        calculate_B_hat_i_const(B, Q, deta_dx_mat, deta_dy_mat, i, j, ni, nj);
     }
     
     for (j = 1; j < nj - 1; j++) {
@@ -1628,7 +1628,7 @@ int btri4s(double *a, double *b, double *c, double *f, int kd, int ks, int ke)
 /* calculating the L2Norm
 argument list:
 s - 1D array of 3D matrix */
-double calculate_S_norm(double *S)
+double calculate_S_norm(double *S, int ni, int nj)
 {
     double sum = 0, value;
 
@@ -1660,26 +1660,23 @@ deta_dx_mat                 - 1D array of 2D matrix
 deta_dy_mat                 - 1D array of 2D matrix
 s2, drr, drp, rspec, qv, dd - 1D work arrays
 */
-double step(double *A, double *B, double *C, double *D, double *current_Q, double *S, double *W, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd)
+double step(double *A, double *B, double *C, double *D, double *current_Q, double *S, double *W, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd, int ni, int nj)
 {
     int i, j, k;
 
-    RHS(S, W, current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat,
-        s2, rspec, qv, dd);
+    RHS(S, W, current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd, ni, nj);
 
 /* xi inversions */
     for (j = 1; j < nj - 1; j++) {
-        LHSX(A, B, C, current_Q, dxi_dx_mat, dxi_dy_mat, j);
-        if (smoothx(current_Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C,
-                    j, J_vals_mat, drr, drp, rspec, qv, dd, epsi, Gamma,
-                    Mach_inf, delta_t)) {
+        LHSX(A, B, C, current_Q, dxi_dx_mat, dxi_dy_mat, j, ni, nj);
+        if (smoothx(current_Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C, j, J_vals_mat, drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
                     /* returns zero on success */
                     fprintf(stderr, "%s:%d: [Erorr] problem with smoothx in LHSX\n", __FILE__, __LINE__);
                     exit(1);
                 }
         for (k = 0; k < 4; k++) {
             for (i = 0; i < ni; i++) {
-                D[offset2d(i, k, ni)] = S[offset3d(i, j, k, ni, nj)];
+                D[offset2d(i, k, ni, nj)] = S[offset3d(i, j, k, ni, nj)];
             }
         }
 
@@ -1687,14 +1684,14 @@ double step(double *A, double *B, double *C, double *D, double *current_Q, doubl
 
         for (k = 0; k < 4; k++) {
             for (i = 0; i < ni; i++) {
-                S[offset3d(i, j, k, ni, nj)] = D[offset2d(i, k, ni)];
+                S[offset3d(i, j, k, ni, nj)] = D[offset2d(i, k, ni, nj)];
             }
         }
     }
 
 /* eta inversions */
     for (i = 1; i < ni - 1; i++) {
-        LHSY(A, B, C, current_Q, deta_dx_mat, deta_dy_mat, i);
+        LHSY(A, B, C, current_Q, deta_dx_mat, deta_dy_mat, i, ni, nj);
         if (smoothy(current_Q, deta_dx_mat, deta_dy_mat, ni,nj, A, B, C, i, J_vals_mat,
                     drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
                     /* returns zero on success */
@@ -1703,16 +1700,16 @@ double step(double *A, double *B, double *C, double *D, double *current_Q, doubl
                 }
         for (k = 0; k < 4; k++) {
             for (j = 0; j < nj; j++) {
-                D[offset2d(j, k, nj)] = S[offset3d(i, j, k, ni, nj)];
+                D[offset2d(j, k, nj, nj)] = S[offset3d(i, j, k, ni, nj)];
             }
         }
         btri4s(A, B, C, D, nj, 1, nj - 2);
         for (k = 0; k < 4; k++) {
             for (j = 0; j < nj; j++) {
-                S[offset3d(i, j, k, ni, nj)] = D[offset2d(j, k, nj)];
+                S[offset3d(i, j, k, ni, nj)] = D[offset2d(j, k, nj, nj)];
             }
         }
     }
 
-    return calculate_S_norm(S);
+    return calculate_S_norm(S, ni, nj);
 }
