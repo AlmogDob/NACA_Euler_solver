@@ -1,7 +1,7 @@
 CFLAGS = -Wall -Wextra -std=c99 -lm -lsqlite3
 CCHECKS = -fsanitize=address
-O_FILES_MAIN = ./build/main ./build/main.o ./build/mesher.o ./build/solver.o
-O_FILES_TEMP = ./build/temp ./build/temp.o ./build/mesher.o ./build/solver.o
+O_FILES_MAIN = ./build/main.o ./build/mesher.o ./build/solver.o
+O_FILES_TEMP = ./build/temp.o ./build/mesher.o ./build/solver.o
 
 # IN_FILE=mesher_input.txt OUT_DIR=./results make main
 main: build_mesher build_solver build_main link_main
@@ -10,7 +10,7 @@ main: build_mesher build_solver build_main link_main
 
 	@echo
 	@echo [INFO] removing build files
-	rm -r $(O_FILES_MAIN)
+	rm -r $(O_FILES_MAIN) ./build/main
 
 	@echo
 	@echo [INFO] done
@@ -29,7 +29,7 @@ build_solver: ./src/solver.c
 
 link_main: ./build/mesher.o ./build/main.o
 	@echo [INFO] linking
-	@gcc ./build/main.o ./build/mesher.o $(CFLAGS) -o ./build/main
+	@gcc $(O_FILES_MAIN) $(CFLAGS) -o ./build/main
 
 debug_main: debug_build_mesher debug_build_main link_main
 	gdb ./build/main
@@ -84,7 +84,7 @@ temp: build_mesher build_temp link_temp
 
 	@echo
 	@echo [INFO] removing build files
-	rm -r $(O_FILES_TEMP)
+	rm -r $(O_FILES_TEMP) ./build/temp
 
 	@echo
 	@echo [INFO] done

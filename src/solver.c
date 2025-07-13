@@ -180,10 +180,12 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
         advance_Q(next_Q, current_Q, S, J_vals_mat, ni, nj);
         copy_3Dmat_to_3Dmat(current_Q, next_Q, ni, nj);
         
-        printf("%5d: %0.10f\n", iteration, current_S_norm);
+        if (!(iteration % 500)) {
+            printf("%5d: %0.15f\n", iteration, current_S_norm);
+        }
         fprintf(iter_fp, "%5d %f\n", iteration, current_S_norm);
 
-        if (fabs(current_S_norm) / first_S_norm < 1e-6 || current_S_norm == 0 || isnan(current_S_norm)) {
+        if (fabs(current_S_norm) / first_S_norm < 1e-4 || current_S_norm == 0 || isnan(current_S_norm)) {
             break;
         }
     }
@@ -339,13 +341,13 @@ argument list:
 i  - first direction
 j  - second direction
 ni - first direction size */
-int offset2d_solver(int i, int j, int ni, int nj)
-{
-    assert(i < ni);
-    assert(j < nj);
+// int offset2d_solver(int i, int j, int ni, int nj)
+// {
+//     assert(i < ni);
+//     assert(j < nj);
 
-    return j * ni + i;
-}
+//     return j * ni + i;
+// }
 
 /* converts a 3D index into 1D index
 argument list:

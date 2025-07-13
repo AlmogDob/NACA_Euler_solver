@@ -1,5 +1,5 @@
 NACA
-2330
+2320
 
 ni
 91
@@ -38,13 +38,13 @@ environment_pressure
 101325
 
 delta_t
-3e-5
+8e-4
 
 Gamma
 1.4
 
 epse
-0.1
+0.06
 
 max_iteration
 1e6

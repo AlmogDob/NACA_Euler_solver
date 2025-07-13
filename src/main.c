@@ -19,7 +19,7 @@ typedef struct {
     double delta_t;
     double Gamma;
     double epse;
-    double max_iteration;
+    int max_iteration;
 } Input_param;
 
 #define ON_LINUX 0
@@ -77,6 +77,14 @@ int main(int argc, char const *argv[])
     dprintD(input_param.YSF);
     dprintD(input_param.r);
     dprintD(input_param.omega);
+    dprintD(input_param.Mach_inf);
+    dprintD(input_param.angle_of_attack_deg);
+    dprintD(input_param.density);
+    dprintD(input_param.environment_pressure);
+    dprintD(input_param.delta_t);
+    dprintD(input_param.Gamma);
+    dprintD(input_param.epse);
+    dprintD((double)(input_param.max_iteration));
     printf("--------------------\n");
 
     /* creating output directory */
@@ -101,11 +109,19 @@ int main(int argc, char const *argv[])
     printf("[INFO] saving mesh\n");
     output_mesh(output_dir, x_mat, y_mat, input_param);
     output_metadata(output_dir, input_param);
+
+    /* solving flow */
+    int solver_rc = solver(output_dir, x_mat, y_mat, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, input_param.Gamma, input_param.epse, input_param.max_iteration);
+    if (solver_rc != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] solving the flow\n", __FILE__, __LINE__);
+        return 1;
+    }
+
+    /* setup DB */
     sqlite3 *db = setup_DB("NACA.db");
     if (!db) {
         return 1;
     }
-
     if (save_to_DB(db, x_mat, y_mat, input_param) != SQLITE_OK) {
         return 1;
     }
@@ -261,6 +277,30 @@ void read_input(char *input_file, Input_param *input_param)
         } else if (!strcmp(current_word, "omega")) {
             fscanf(fp, "%g", &temp);
             input_param->omega = (double)temp;
+        } else if (!strcmp(current_word, "Mach_inf")) {
+            fscanf(fp, "%g", &temp);
+            input_param->Mach_inf = (double)temp;
+        } else if (!strcmp(current_word, "angle_of_attack_deg")) {
+            fscanf(fp, "%g", &temp);
+            input_param->angle_of_attack_deg = (double)temp;
+        } else if (!strcmp(current_word, "density")) {
+            fscanf(fp, "%g", &temp);
+            input_param->density = (double)temp;
+        } else if (!strcmp(current_word, "environment_pressure")) {
+            fscanf(fp, "%g", &temp);
+            input_param->environment_pressure = (double)temp;
+        } else if (!strcmp(current_word, "delta_t")) {
+            fscanf(fp, "%g", &temp);
+            input_param->delta_t = (double)temp;
+        } else if (!strcmp(current_word, "Gamma")) {
+            fscanf(fp, "%g", &temp);
+            input_param->Gamma = (double)temp;
+        } else if (!strcmp(current_word, "epse")) {
+            fscanf(fp, "%g", &temp);
+            input_param->epse = (double)temp;
+        } else if (!strcmp(current_word, "max_iteration")) {
+            fscanf(fp, "%g", &temp);
+            input_param->max_iteration = (int)temp;
         }
     }
 
