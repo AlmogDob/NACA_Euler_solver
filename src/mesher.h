@@ -1,31 +1,3 @@
-/* example input file:
-NACA
-0012
-
-ni
-51
-
-nj
-26
-
-num_points_on_airfoil
-31
-
-delta_y
-0.02
-
-XSF
-1.15
-
-YSF
-1.15
-
-r
-0.001
-
-omega
-0.1
-*/
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -36,7 +8,7 @@ omega
     #define MAXDIR 1000
 #endif
 #ifndef MAXWORD
-    #define MAXWORD 2000
+    #define MAXWORD 3000
 #endif
 #ifndef PI
     #ifndef __USE_MISC

@@ -217,8 +217,8 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
     free(y_vals_mat_init);
     free(x_vals_mat_current);
     free(y_vals_mat_current);
-    free(x_vals_mat_next);
-    free(y_vals_mat_next);
+    // free(x_vals_mat_next);
+    // free(y_vals_mat_next);
     free(alpha_vals_mat);
     free(beta_vals_mat);
     free(gama_vals_mat);

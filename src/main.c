@@ -31,7 +31,7 @@ void output_metadata(char *output_dir, Input_param input_param);
 void mat_output_to_file(FILE *fp, double *data, Input_param input_param);
 void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, Input_param input_param);
 sqlite3 *setup_DB(char * db_name);
-int output_input_param_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_param input_param);
+int save_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_param input_param);
 
 int main(int argc, char const *argv[])
 {
@@ -56,7 +56,6 @@ int main(int argc, char const *argv[])
 
     /* Input variables */
     Input_param input_param;
-
     read_input(input_file, &input_param);
 
     /* Checking that I got the right input */
@@ -98,7 +97,7 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    if (output_input_param_to_DB(db, x_mat, y_mat, input_param) != SQLITE_OK) {
+    if (save_to_DB(db, x_mat, y_mat, input_param) != SQLITE_OK) {
         return 1;
     }
     sqlite3_close(db);
@@ -344,10 +343,11 @@ sqlite3 *setup_DB(char *db_name)
     return db;
 }
 
-/* saving input param to the DB and deleting if there are duplicates;
+/* saving input param mesh and solution to the DB and deleting if there are duplicates;
 returning the error return code. */
-int output_input_param_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_param input_param)
+int save_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_param input_param)
 {
+    /* saving to DB */
     char temp_sql[MAXWORD];
     char *err_msg = 0;
 
@@ -359,6 +359,8 @@ int output_input_param_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_pa
         fprintf(stderr, "%s:%d: [ERROR] failed to prepare statement %s\n", __FILE__, __LINE__, temp_sql);
         return SQLITE_ERROR;
     }
+    
+    /* binding mesh */
     rc = sqlite3_bind_blob(statement_pointer, 1, x_mat, input_param.ni * input_param.nj * sizeof(double), SQLITE_STATIC);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "%s:%d: [ERROR] failed to bind x values\n", __FILE__, __LINE__);
@@ -369,6 +371,8 @@ int output_input_param_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_pa
         fprintf(stderr, "%s:%d: [ERROR] failed to bind y values\n", __FILE__, __LINE__);
         return SQLITE_ERROR;
     }
+
+    /* executing statement */
     rc = sqlite3_step(statement_pointer);
     if (rc != SQLITE_DONE) {
         fprintf(stderr, "%s:%d: [ERROR] failed to step the statement of x and y mat\n", __FILE__, __LINE__);
@@ -380,6 +384,7 @@ int output_input_param_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_pa
         return SQLITE_ERROR;
     }
 
+    /* deleting duplicates */
     strcpy(temp_sql, "");
     sprintf(temp_sql, "DELETE FROM NACA_data WHERE ID NOT IN (SELECT MIN(ID) FROM NACA_data GROUP BY NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega);");
     err_msg = 0;
@@ -391,3 +396,5 @@ int output_input_param_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_pa
 
     return rc;
 }
+
+
