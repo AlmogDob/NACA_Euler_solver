@@ -194,19 +194,19 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
 
     strcpy(temp_word, output_dir);
     strcat(temp_word, "/x_mat_init.txt");
-    output_solution(temp_word, x_vals_mat_init, i_max, j_max);
+    output_solution_mesher(temp_word, x_vals_mat_init, i_max, j_max);
 
     strcpy(temp_word, output_dir);
     strcat(temp_word, "/y_mat_init.txt");
-    output_solution(temp_word, y_vals_mat_init, i_max, j_max);
+    output_solution_mesher(temp_word, y_vals_mat_init, i_max, j_max);
 
     strcpy(temp_word, output_dir);
     strcat(temp_word, "/x_mat.txt");
-    output_solution(temp_word, x_vals_mat_next, i_max, j_max);
+    output_solution_mesher(temp_word, x_vals_mat_next, i_max, j_max);
 
     strcpy(temp_word, output_dir);
     strcat(temp_word, "/y_mat.txt");
-    output_solution(temp_word, y_vals_mat_next, i_max, j_max);
+    output_solution_mesher(temp_word, y_vals_mat_next, i_max, j_max);
 
     *x_mat = x_vals_mat_next;
     *y_mat = y_vals_mat_next;
@@ -241,7 +241,7 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
 argument list:
 dir - the directory of the output file.
 data - the solution vector */
-void output_solution(char *file, double *data, int i_max, int j_max)
+void output_solution_mesher(char *file, double *data, int i_max, int j_max)
 {
     FILE *fp = fopen(file, "wt");
     if (!fp) {

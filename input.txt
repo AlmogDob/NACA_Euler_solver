@@ -25,9 +25,6 @@ r
 omega
 0.1
 
-
-
-
 Mach_inf
 0.7
 

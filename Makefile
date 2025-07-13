@@ -1,10 +1,10 @@
 CFLAGS = -Wall -Wextra -std=c99 -lm -lsqlite3
 CCHECKS = -fsanitize=address
-O_FILES_MAIN = ./build/main ./build/main.o ./build/mesher.o
-O_FILES_TEMP = ./build/temp ./build/temp.o ./build/mesher.o
+O_FILES_MAIN = ./build/main ./build/main.o ./build/mesher.o ./build/solver.o
+O_FILES_TEMP = ./build/temp ./build/temp.o ./build/mesher.o ./build/solver.o
 
 # IN_FILE=mesher_input.txt OUT_DIR=./results make main
-main: build_mesher build_main link_main
+main: build_mesher build_solver build_main link_main
 	@echo
 	./build/main $(IN_FILE) $(OUT_DIR)
 
@@ -22,6 +22,10 @@ build_main:
 build_mesher: ./src/mesher.c
 	@echo [INFO] building mesher
 	@gcc -c ./src/mesher.c $(CFLAGS) -o ./build/mesher.o
+
+build_solver: ./src/solver.c
+	@echo [INFO] building solver
+	@gcc -c ./src/solver.c $(CFLAGS) -o ./build/solver.o
 
 link_main: ./build/mesher.o ./build/main.o
 	@echo [INFO] linking

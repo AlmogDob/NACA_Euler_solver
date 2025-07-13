@@ -1,4 +1,5 @@
 #include "mesher.h"
+#include "solver.h"
 #include <sqlite3.h>
 
 typedef struct {
@@ -11,6 +12,14 @@ typedef struct {
     double YSF;
     double r;
     double omega;
+    double Mach_inf;
+    double angle_of_attack_deg;
+    double density;
+    double environment_pressure;
+    double delta_t;
+    double Gamma;
+    double epse;
+    double max_iteration;
 } Input_param;
 
 #define ON_LINUX 0
