@@ -33,7 +33,7 @@
 #endif
 
 void read_mat_from_file(FILE *fp, double *des, int ni, int nj);
-void output_solution(const char *output_dir, double *current_Q, double *U_mat, double *V_mat, double *x_vals_mat, double *y_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj);
+void output_solution(const char *output_dir, double *current_Q, double *U_mat, double *V_mat, double *x_vals_mat, double *y_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj, int i_TEL, int i_LE, int i_TEU);
 int offset2d(int i, int j, int ni, int nj);
 int offset3d(int i, int j, int k, int ni, int nj);
 void print_mat2D(double *data, int ni, int nj);
@@ -42,33 +42,29 @@ double first_deriv(double *mat, char diraction, int i, int j, int ni, int nj);
 double calculate_one_over_jacobian_at_a_point(double *x_vals_mat, double *y_vals_mat, int i, int j, int ni, int nj);
 void contravariant_velocities(double *U, double *V, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *Q, int i, int j, int ni, int nj);
 void calculate_u_and_v(double *u, double *v, double *Q, int i, int j, int ni, int nj);
-double calculate_p(double energy, double rho, double u, double v);
-double calculate_energy(double p, double u, double v, double rho);
-void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2, double *E3, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *Q, int i, int j, int ni, int nj);
-void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2, double *F3, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *Q, int i, int j, int ni, int nj);
-void initialize_flow_field(double *Q, int ni, int nj);
+double calculate_p(double energy, double rho, double u, double v, const double Gamma);
+double calculate_energy(double p, double u, double v, double rho, const double Gamma);
+void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2, double *E3, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *Q, int i, int j, int ni, int nj, const double Gamma);
+void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2, double *F3, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *Q, int i, int j, int ni, int nj, const double Gamma);
+void initialize_flow_field(double *Q, int ni, int nj, const double Mach_inf, const double angle_of_attack_rad, const double environment_pressure, const double density, const double Gamma);
 void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *x_vals_mat, double *y_vals_mat, int ni, int nj);
-void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *x_vals_mat, double *y_vals_mat, int ni, int nj);
-void RHS(double *S, double *W, double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *rspec, double *qv, double *dd, int ni, int nj);
+void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *x_vals_mat, double *y_vals_mat, int ni, int nj, const double Mach_inf, const double angle_of_attack_rad, const double environment_pressure, const double density, const double Gamma);
+void RHS(double *S, double *W, double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *rspec, double *qv, double *dd, int ni, int nj, int max_ni_nj, const double Mach_inf, const double delta_t, const double Gamma, const double epse);
 void advance_Q(double *next_Q, double *current_Q ,double *S, double *J_vals_mat, int ni, int nj);
 void copy_3Dmat_to_3Dmat(double *dst, double *src, int ni, int nj);
 int smooth(double *q, double *s, double *jac, double *xx, double *xy, double *yx, double *yy, int id, int jd, double *s2, double *rspec, double *qv, double *dd, double epse, double gamma, double fsmach, double dt);
-void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj);
+void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj, int i_TEL, int i_LE, int i_TEU, const double Gamma);
 void output_mat2D_to_file(FILE *fp, double *data, int ni, int nj);
 void output_layer_of_mat3D_to_file(FILE *fp, double *data, int layer, int ni, int nj);
-void calculate_A_hat_j_const(double *dst, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int i, int j, int ni, int nj);
-void calculate_B_hat_i_const(double *dst, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int j, int ni, int nj);
+void calculate_A_hat_j_const(double *dst, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int i, int j, int ni, int nj, const double Gamma);
+void calculate_B_hat_i_const(double *dst, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int j, int ni, int nj, const double Gamma);
 int smoothx(double *q, double *xx, double *xy, int id, int jd, double *a, double *b, double *c, int j,double *jac, double *drr, double *drp, double *rspec, double *qv, double *dd, double epsi, double gamma, double fsmach, double dt);
 int smoothy(double *q, double *yx, double *yy, int id, int jd, double *a, double *b, double *c, int i,double *jac, double *drr, double *drp, double *rspec, double *qv, double *dd, double epsi, double gamma, double fsmach, double dt);
-void LHSX(double *A, double *B, double *C, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int j, int ni, int nj);
-void LHSY(double *A, double *B, double *C, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int ni, int nj);
+void LHSX(double *A, double *B, double *C, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int j, int ni, int nj, const double Gamma, const double delta_t);
+void LHSY(double *A, double *B, double *C, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int ni, int nj, int max_ni_nj , const double Gamma, const double delta_t);
 int btri4s(double *a, double *b, double *c, double *f, int kd, int ks, int ke);
 double calculate_S_norm(double *S, int ni, int nj);
-double step(double *A, double *B, double *C, double *D, double *current_Q, double *S, double *W, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd, int ni, int nj);
-
-/* global variables */
-int max_ni_nj, i_TEL, i_LE, i_TEU, j_TEL, j_LE, j_TEU;
-double Mach_inf, angle_of_attack_deg, angle_of_attack_rad, density, environment_pressure, delta_t, Gamma, epse, epsi, max_iteration;
+double step(double *A, double *B, double *C, double *D, double *current_Q, double *S, double *W, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd, int ni, int nj, int max_ni_nj, const double Mach_inf, const double delta_t, const double Gamma, const double epse, const double epsi);
 
 /* return 0 on success */
 int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int ni, int nj, int num_points_on_airfoil, const double Mach_inf, const double angle_of_attack_deg, const double density, const double environment_pressure, const double delta_t, const double Gamma, const double epse, const double max_iteration)
@@ -80,14 +76,15 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
     
     int i_index, j_index, k_index;
 
-    const int i_LE = (ni-1) / 2;
+    const int i_LE  = (ni-1) / 2;
     const int i_TEL = i_LE - num_points_on_airfoil / 2 + 1;
     const int i_TEU = i_LE + num_points_on_airfoil / 2 - 1;
     const int j_TEL = 0;
     const int j_LE  = 0;
     const int j_TEU = 0;
     const double angle_of_attack_rad = 2 * PI / 180 * angle_of_attack_deg;
-    const double epsi = epse * 2;
+    const double epsi   = epse * 2;
+    const int max_ni_nj = (int)fmax(ni, nj);
 
     /* allocating the matrices */
     J_vals_mat = (double *)malloc(sizeof(double) * ni * nj);
@@ -231,12 +228,12 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
     strncat(temp_word, "/iterations.txt", MAXWORD/2);
     FILE *iter_fp = fopen(temp_word, "wt");
 
-    initialize(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, x_vals_mat, y_vals_mat, ni, nj);
+    initialize(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, x_vals_mat, y_vals_mat, ni, nj, Mach_inf, angle_of_attack_rad, environment_pressure, density, Gamma);
     copy_3Dmat_to_3Dmat(first_Q, current_Q, ni, nj);
     
     for (int iteration = 0; iteration < max_iteration; iteration++) {
-        apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj);
-        current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp, rspec, qv, dd, ni, nj);
+        apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj, i_TEL, i_LE, i_TEU, Gamma);
+        current_S_norm = step(A, B, C, D, current_Q, S, W, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp, rspec, qv, dd, ni, nj, max_ni_nj, Mach_inf, delta_t, Gamma, epse, epsi);
         if (max_S_norm < fabs(current_S_norm)) {
             max_S_norm = fabs(current_S_norm);
         }
@@ -254,7 +251,7 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
         }
     }
 
-    output_solution(output_dir, current_Q, U_mat, V_mat, x_vals_mat, y_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj);
+    output_solution(output_dir, current_Q, U_mat, V_mat, x_vals_mat, y_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj, i_TEL, i_LE, i_TEU);
     
 /*------------------------------------------------------------*/
 
@@ -315,7 +312,7 @@ dxi_dx_mat  - 1D array of 2D matrix
 dxi_dy_mat  - 1D array of 2D matrix 
 deta_dx_mat - 1D array of 2D matrix 
 deta_dy_mat - 1D array of 2D matrix */
-void output_solution(const char *output_dir, double *current_Q, double *U_mat, double *V_mat, double *x_vals_mat, double *y_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj)
+void output_solution(const char *output_dir, double *current_Q, double *U_mat, double *V_mat, double *x_vals_mat, double *y_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj, int i_TEL, int i_LE, int i_TEU)
 {
     int i, j, index;
     double U, V;
@@ -554,7 +551,7 @@ energy - the energy
 rho    - the density
 u      - the horizontal velocity
 v      - the vertical velocity  */
-double calculate_p(double energy, double rho, double u, double v)
+double calculate_p(double energy, double rho, double u, double v, const double Gamma)
 {
     return (Gamma - 1) * (energy - 0.5 * rho * (u * u + v * v));
 }
@@ -565,7 +562,7 @@ p   - the pressure
 u   - the horizontal velocity
 v   - the vertical velocity 
 rho - the density */
-double calculate_energy(double p, double u, double v, double rho)
+double calculate_energy(double p, double u, double v, double rho, const double Gamma)
 {
     return p / (Gamma - 1) + rho * (u * u + v * v) / 2;
 }
@@ -583,7 +580,7 @@ deta_dx_mat - 1D array of 2D matrix
 deta_dy_mat - 1D array of 2D matrix
 Q           - 1D array of 3D matrix
 i, j        - the points coordinates */
-void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2, double *E3, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *Q, int i, int j, int ni, int nj)
+void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2, double *E3, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *Q, int i, int j, int ni, int nj, const double Gamma)
 {
     double u, v, U, V, dxi_dx, dxi_dy, energy, p, rho, J;
     int index = offset2d(i, j, ni, nj);
@@ -593,7 +590,7 @@ void calculate_E_hat_at_a_point(double *E0, double *E1, double *E2, double *E3, 
                              deta_dy_mat, Q, i, j, ni, nj);
     energy = Q[offset3d(i, j, 3, ni, nj)];
     rho = Q[offset3d(i, j, 0, ni, nj)];
-    p = calculate_p(energy, rho, u, v);
+    p = calculate_p(energy, rho, u, v, Gamma);
 
     dxi_dx = dxi_dx_mat[index];
     dxi_dy = dxi_dy_mat[index];
@@ -619,7 +616,7 @@ deta_dx_mat - 1D array of 2D matrix
 deta_dy_mat - 1D array of 2D matrix
 Q           - 1D array of 3D matrix
 i, j        - the points coordinates */
-void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2, double *F3, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *Q, int i, int j, int ni, int nj)
+void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2, double *F3, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *Q, int i, int j, int ni, int nj, const double Gamma)
 {
     double u, v, U, V, J, deta_dx, deta_dy,
     energy, p, rho;
@@ -630,7 +627,7 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2, double *F3, 
                              deta_dy_mat, Q, i, j, ni, nj);  
     energy = Q[offset3d(i, j, 3, ni, nj)];
     rho = Q[offset3d(i, j, 0, ni, nj)];
-    p = calculate_p(energy, rho, u, v);
+    p = calculate_p(energy, rho, u, v, Gamma);
 
     J = J_vals_mat[index];
     deta_dx = deta_dx_mat[index];
@@ -646,7 +643,7 @@ void calculate_F_hat_at_a_point(double *F0, double *F1, double *F2, double *F3, 
 /* initializing the flow field according to the free flow conditions
 argument list:
 Q - 1D array of 3D matrix */
-void initialize_flow_field(double *Q, int ni, int nj)
+void initialize_flow_field(double *Q, int ni, int nj, const double Mach_inf, const double angle_of_attack_rad, const double environment_pressure, const double density, const double Gamma)
 {
     double u, v, energy, p, rho, speed_of_sound, velocity;
 
@@ -658,7 +655,7 @@ void initialize_flow_field(double *Q, int ni, int nj)
     u = velocity * cos(angle_of_attack_rad);
     v = velocity * sin(angle_of_attack_rad);
 
-    energy = calculate_energy(p, u, v, rho);
+    energy = calculate_energy(p, u, v, rho, Gamma);
 
     for (int i = 0; i < ni; i++) {
         for (int j = 0; j < nj; j++) {
@@ -721,9 +718,9 @@ deta_dx_mat - 1D array of 2D matrix
 deta_dy_mat - 1D array of 2D matrix
 x_vals_mat  - 1D array of 2D matrix
 y_vals_mat  - 1D array of 2D matrix */
-void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *x_vals_mat, double *y_vals_mat, int ni, int nj)
+void initialize(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *x_vals_mat, double *y_vals_mat, int ni, int nj, const double Mach_inf, const double angle_of_attack_rad, const double environment_pressure, const double density, const double Gamma)
 {
-    initialize_flow_field(Q, ni, nj);
+    initialize_flow_field(Q, ni, nj, Mach_inf, angle_of_attack_rad, environment_pressure, density, Gamma);
     matrices_coeffic_and_Jacobian(J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, x_vals_mat, y_vals_mat, ni, nj);
 }
 
@@ -739,7 +736,7 @@ deta_dx_mat       - 1D array of 2D matrix
 deta_dy_mat       - 1D array of 2D matrix
 s2, rspec, qv, dd - 1D work arrays
  */
-void RHS(double *S, double *W, double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *rspec, double *qv, double *dd, int ni, int nj)
+void RHS(double *S, double *W, double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *rspec, double *qv, double *dd, int ni, int nj, int max_ni_nj, const double Mach_inf, const double delta_t, const double Gamma, const double epse)
 {
 int i, j, k;
 
@@ -760,12 +757,7 @@ int i, j, k;
     /* xi direction (constant j) */
     for (j = 1; j < nj - 1; j++) {
         for (i = 0; i < ni; i++) {
-            calculate_E_hat_at_a_point(&W[offset2d(i, 0, max_ni_nj, nj)],
-                                       &W[offset2d(i, 1, max_ni_nj, nj)],
-                                       &W[offset2d(i, 2, max_ni_nj, nj)],
-                                       &W[offset2d(i, 3, max_ni_nj, nj)], J_vals_mat,
-                                       dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
-                                       deta_dy_mat, Q, i, j, ni, nj);
+            calculate_E_hat_at_a_point(&W[offset2d(i, 0, max_ni_nj, nj)], &W[offset2d(i, 1, max_ni_nj, nj)], &W[offset2d(i, 2, max_ni_nj, nj)], &W[offset2d(i, 3, max_ni_nj, nj)], J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, Q, i, j, ni, nj, Gamma);
         }
         for (i = 1; i < ni - 1; i++) {
             for (k = 0; k < 4; k++) {
@@ -782,7 +774,7 @@ int i, j, k;
                                        &W[offset2d(j, 2, max_ni_nj, nj)],
                                        &W[offset2d(j, 3, max_ni_nj, nj)], J_vals_mat,
                                        dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
-                                       deta_dy_mat, Q, i, j, ni, nj);
+                                       deta_dy_mat, Q, i, j, ni, nj, Gamma);
         }
         for (j = 1; j < nj - 1; j++) {
             for (k = 0; k < 4; k++) {
@@ -791,13 +783,11 @@ int i, j, k;
         }
     }
 
-     if (smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat,
-               deta_dy_mat, ni, nj, s2, rspec, qv, dd, epse, Gamma,
-               Mach_inf, delta_t)) {
-                /* returns zero on success */
-                fprintf(stderr, "%s:%d: [Erorr] problem with smooth in RHS\n", __FILE__, __LINE__);
-                exit(1);
-               }
+     if (smooth(Q, S, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj, s2, rspec, qv, dd, epse, Gamma, Mach_inf, delta_t)) {
+        /* returns zero on success */
+        fprintf(stderr, "%s:%d: [Erorr] problem with smooth in RHS\n", __FILE__, __LINE__);
+        exit(1);
+    }
 }
 
 /* calculating Q at the next time step to the next_Q 1D array (3D matrix)
@@ -994,7 +984,7 @@ dxi_dy_mat        - 1D array of 2D matrix
 deta_dx_mat       - 1D array of 2D matrix
 deta_dy_mat       - 1D array of 2D matrix
 */
-void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj)
+void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj, int i_TEL, int i_LE, int i_TEU, const double Gamma)
 {
     int i, k;
     double J_j0, u_j1, v_j1, p_j1, e_j1, rho_j0, rho_j1, p_j0, e_j0, u_j0,
@@ -1024,12 +1014,12 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_
         
         /* p_i,0 */
         e_j1 = Q[offset3d(i, 1, 3, ni, nj)];
-        p_j1 = calculate_p(e_j1, rho_j1, u_j1, v_j1);
+        p_j1 = calculate_p(e_j1, rho_j1, u_j1, v_j1, Gamma);
         p_j0 = p_j1;
         
         /* e_i,0*/
         e_j0 = p_j0 / (Gamma -1) + 0.5 * rho_j0 * (u_j0 * u_j0 + v_j0 *v_j0);
-        p_j0 = calculate_p(e_j0, rho_j0, u_j0, v_j0);
+        p_j0 = calculate_p(e_j0, rho_j0, u_j0, v_j0, Gamma);
 
         Q[offset3d(i, 0, 0, ni, nj)] = rho_j0;
         Q[offset3d(i, 0, 1, ni, nj)] = rho_j0 * u_j0;
@@ -1047,14 +1037,14 @@ void apply_BC(double *Q, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_
     e_iTEU_jTEU = Q[offset3d(i_TEU, 0, 3, ni, nj)];
     e_iTEL_jTEL = Q[offset3d(i_TEL, 0, 3, ni, nj)];
 
-    p_iTEU_jTEU = calculate_p(e_iTEU_jTEU, rho_iTEU_jTEU, u_iTEU_jTEU, v_iTEU_jTEU);
-    p_iTEL_jTEL = calculate_p(e_iTEL_jTEL, rho_iTEL_jTEL, u_iTEL_jTEL, v_iTEL_jTEL);
+    p_iTEU_jTEU = calculate_p(e_iTEU_jTEU, rho_iTEU_jTEU, u_iTEU_jTEU, v_iTEU_jTEU, Gamma);
+    p_iTEL_jTEL = calculate_p(e_iTEL_jTEL, rho_iTEL_jTEL, u_iTEL_jTEL, v_iTEL_jTEL, Gamma);
     
     p_iTE_jTE   = 0.5 * (p_iTEU_jTEU   + p_iTEL_jTEL);
     u_iTE_jTE   = 0.5 * (u_iTEU_jTEU   + u_iTEL_jTEL);
     v_iTE_jTE   = 0.5 * (v_iTEU_jTEU   + v_iTEL_jTEL);
     rho_iTE_jTE = 0.5 * (rho_iTEU_jTEU + rho_iTEL_jTEL);
-    e_iTE_jTE   = calculate_energy(p_iTE_jTE, u_iTE_jTE, v_iTE_jTE, rho_iTE_jTE);
+    e_iTE_jTE   = calculate_energy(p_iTE_jTE, u_iTE_jTE, v_iTE_jTE, rho_iTE_jTE, Gamma);
 
     Q[offset3d(i_TEL, 0, 0, ni, nj)] = rho_iTE_jTE;
     Q[offset3d(i_TEU, 0, 0, ni, nj)] = rho_iTE_jTE;
@@ -1123,7 +1113,7 @@ Q           - 1D array of 3D matrix
 dxi_dx_mat  - 1D array of 2D matrix
 dxi_dy_mat  - 1D array of 2D matrix
 i, j        - the points coordinates */
-void calculate_A_hat_j_const(double *dst, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int i, int j, int ni, int nj)
+void calculate_A_hat_j_const(double *dst, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int i, int j, int ni, int nj, const double Gamma)
 {
     /* xi (i) direction */
     double u, v, phi_square, theta, gamma1, gamma2, beta, energy, rho,
@@ -1173,7 +1163,7 @@ Q            - 1D array of 3D matrix
 deta_dx_mat  - 1D array of 2D matrix
 deta_dy_mat  - 1D array of 2D matrix
 i, j         - the points coordinates */
-void calculate_B_hat_i_const(double *dst, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int j, int ni, int nj)
+void calculate_B_hat_i_const(double *dst, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int j, int ni, int nj, const double Gamma)
 {
     /* eta (j) direction */
     double u, v, phi_square, theta, gamma1, gamma2, beta, energy, rho,
@@ -1397,12 +1387,12 @@ Q          - 1D array of 3D matrix
 dxi_dx_mat - 1D array of 2D matrix
 dxi_dy_mat - 1D array of 2D matrix
 j          - the second direction index */
-void LHSX(double *A, double *B, double *C, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int j, int ni, int nj)
+void LHSX(double *A, double *B, double *C, double *Q, double *dxi_dx_mat, double *dxi_dy_mat, int j, int ni, int nj, const double Gamma, const double delta_t)
 {
     int i, n, m; 
 
     for (i = 0; i < ni; i++) {
-        calculate_A_hat_j_const(B, Q, dxi_dx_mat, dxi_dy_mat, i, j, ni, nj);
+        calculate_A_hat_j_const(B, Q, dxi_dx_mat, dxi_dy_mat, i, j, ni, nj, Gamma);
     }
     for (i = 1; i < ni - 1; i++) {
         for (n = 0; n < 4; n++) {
@@ -1435,7 +1425,7 @@ Q           - 1D array of 3D matrix
 deta_dx_mat - 1D array of 2D matrix
 deta_dy_mat - 1D array of 2D matrix
 i           - the second direction index */
-void LHSY(double *A, double *B, double *C, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int ni, int nj)
+void LHSY(double *A, double *B, double *C, double *Q, double *deta_dx_mat, double *deta_dy_mat, int i, int ni, int nj, int max_ni_nj , const double Gamma, const double delta_t)
 {
     int j, n, m; 
 
@@ -1450,7 +1440,7 @@ void LHSY(double *A, double *B, double *C, double *Q, double *deta_dx_mat, doubl
     }
 
     for (j = 0; j < nj; j++) {
-        calculate_B_hat_i_const(B, Q, deta_dx_mat, deta_dy_mat, i, j, ni, nj);
+        calculate_B_hat_i_const(B, Q, deta_dx_mat, deta_dy_mat, i, j, ni, nj, Gamma);
     }
     
     for (j = 1; j < nj - 1; j++) {
@@ -1660,15 +1650,15 @@ deta_dx_mat                 - 1D array of 2D matrix
 deta_dy_mat                 - 1D array of 2D matrix
 s2, drr, drp, rspec, qv, dd - 1D work arrays
 */
-double step(double *A, double *B, double *C, double *D, double *current_Q, double *S, double *W, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd, int ni, int nj)
+double step(double *A, double *B, double *C, double *D, double *current_Q, double *S, double *W, double *J_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, double *s2, double *drr, double *drp, double *rspec, double *qv, double *dd, int ni, int nj, int max_ni_nj, const double Mach_inf, const double delta_t, const double Gamma, const double epse, const double epsi)
 {
     int i, j, k;
 
-    RHS(S, W, current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd, ni, nj);
+    RHS(S, W, current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, rspec, qv, dd, ni, nj, max_ni_nj, Mach_inf, delta_t, Gamma, epse);
 
 /* xi inversions */
     for (j = 1; j < nj - 1; j++) {
-        LHSX(A, B, C, current_Q, dxi_dx_mat, dxi_dy_mat, j, ni, nj);
+        LHSX(A, B, C, current_Q, dxi_dx_mat, dxi_dy_mat, j, ni, nj, Gamma, delta_t);
         if (smoothx(current_Q, dxi_dx_mat, dxi_dy_mat, ni, nj, A, B, C, j, J_vals_mat, drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
                     /* returns zero on success */
                     fprintf(stderr, "%s:%d: [Erorr] problem with smoothx in LHSX\n", __FILE__, __LINE__);
@@ -1691,7 +1681,7 @@ double step(double *A, double *B, double *C, double *D, double *current_Q, doubl
 
 /* eta inversions */
     for (i = 1; i < ni - 1; i++) {
-        LHSY(A, B, C, current_Q, deta_dx_mat, deta_dy_mat, i, ni, nj);
+        LHSY(A, B, C, current_Q, deta_dx_mat, deta_dy_mat, i, ni, nj, max_ni_nj, Gamma, delta_t);
         if (smoothy(current_Q, deta_dx_mat, deta_dy_mat, ni,nj, A, B, C, i, J_vals_mat,
                     drr, drp, rspec, qv, dd, epsi, Gamma, Mach_inf, delta_t)) {
                     /* returns zero on success */
