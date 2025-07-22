@@ -167,6 +167,11 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
 
     initialize_solver(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, x_vals_mat, y_vals_mat, ni, nj, Mach_inf, angle_of_attack_rad, environment_pressure, density, Gamma);
     copy_3Dmat_to_3Dmat(first_Q, current_Q, ni, nj);
+
+    // printf("rho\n");
+    // print_layer_of_mat3D(current_Q, 0, ni, nj);
+    // printf("rho v\n");
+    // print_layer_of_mat3D(current_Q, 2, ni, nj);
     
     for (int iteration = 0; iteration < max_iteration; iteration++) {
         apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj, i_TEL, i_LE, i_TEU, Gamma);
@@ -186,6 +191,7 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
         fprintf(iter_fp, "%5d %f\n", iteration, current_S_norm);
 
         if (fabs(current_S_norm) / first_S_norm < 1e-4 || current_S_norm == 0 || isnan(current_S_norm)) {
+            printf("%5d: %0.15f\n", iteration, current_S_norm);
             break;
         }
     }

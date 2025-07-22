@@ -112,7 +112,7 @@ int main(int argc, char const *argv[])
 
     /* solving flow */
     printf("[INFO] solving flow field\n");
-    int solver_rc = solver(output_dir, x_mat, y_mat, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, input_param.Gamma, input_param.epse, input_param.max_iteration);
+    int solver_rc = solver(output_dir, x_mat, y_mat, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse, input_param.max_iteration);
     if (solver_rc != 0) {
         fprintf(stderr, "%s:%d: [ERROR] solving the flow\n", __FILE__, __LINE__);
         return 1;
@@ -239,6 +239,48 @@ int create_output_dir(char *output_dir, Input_param input_param)
         fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
         return 1;
     }
+    sprintf(temp_word, "/Mach_inf%g", input_param.Mach_inf);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/angle_of_attack_deg%g", input_param.angle_of_attack_deg);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/density%g", input_param.density);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/environment_pressure%g", input_param.environment_pressure);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/delta_t%g", input_param.delta_t);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/Gamma%g", input_param.Gamma);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
+    sprintf(temp_word, "/epse%g", input_param.epse);
+    strcat(output_dir, temp_word);
+    if (create_empty_dir(output_dir) != 0) {
+        fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
+        return 1;
+    }
     return 0;
 }
 #endif
@@ -345,7 +387,7 @@ void mat_output_to_file(FILE *fp, double *data, Input_param input_param)
     
     for (j = 0; j < input_param.nj; j++) {
         for (i = 0; i < input_param.ni; i++) {
-            fprintf(fp, "%g ", data[offset2d(i, j, input_param.ni)]);
+            fprintf(fp, "%g ", data[offset2d_mesher(i, j, input_param.ni)]);
         }
         fprintf(fp, "\n");
     }

@@ -1,5 +1,5 @@
 NACA
-0012
+8312
 
 ni
 91
@@ -26,7 +26,7 @@ omega
 0.1
 
 Mach_inf
-0.7
+0.9
 
 angle_of_attack_deg
 0
@@ -38,7 +38,7 @@ environment_pressure
 101325
 
 delta_t
-8e-4
+8e-5
 
 Gamma
 1.4

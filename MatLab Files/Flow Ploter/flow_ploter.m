@@ -60,18 +60,21 @@ a = sqrt(gamma.*p./Q0);
 M = sqrt(u.^2 + v.^2)./a;
 
 hold all
-contourf(x, y, p, 100, "LineStyle","none");
+contourf(x, y, M, 300, "LineStyle","none");
 colorbar;
 colormap("turbo");
 
-% plot(x(:,end), y(:,end),'-*','Color',"#7E2F8E")
-% plot(x(:,1), y(:,1),'-*m')
-% plot(x(end,:), y(end,:),'-*r')
+% quiver(x, y, u, v, "Color", "#FFFFFF");
+
+% 
+% plot(x(:,end), y(:,end),'-','Color',"#7E2F8E")
+% plot(x(:,1), y(:,1),'-m')
+% plot(x(end,:), y(end,:),'-r')
 % plot(x(1,:), y(1,:),'-k')
 % 
 % for i = 2:(length(x(1,:))-1)
-%     plot(x(:,i), y(:,i),'-','Color',"#0072BD")
+%     plot(x(:,i), y(:,i),'-k')%,'Color',"#0072BD")
 % end
 % for i = 2:(length(x(:,1))-1)
-%     plot(x(i,:), y(i,:),'-','Color',"#0072BD")
+%     plot(x(i,:), y(i,:),'-k')%,'Color',"#0072BD")
 % end
