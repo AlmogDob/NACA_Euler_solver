@@ -1,5 +1,5 @@
 NACA
-2320
+0012
 
 ni
 91
@@ -47,4 +47,4 @@ epse
 0.06
 
 max_iteration
-1e6
+1e5

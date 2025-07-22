@@ -111,6 +111,7 @@ int main(int argc, char const *argv[])
     output_metadata(output_dir, input_param);
 
     /* solving flow */
+    printf("[INFO] solving flow field\n");
     int solver_rc = solver(output_dir, x_mat, y_mat, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, input_param.Gamma, input_param.epse, input_param.max_iteration);
     if (solver_rc != 0) {
         fprintf(stderr, "%s:%d: [ERROR] solving the flow\n", __FILE__, __LINE__);
@@ -122,9 +123,12 @@ int main(int argc, char const *argv[])
     if (!db) {
         return 1;
     }
+
+    /* saving to DB */
     if (save_to_DB(db, x_mat, y_mat, input_param) != SQLITE_OK) {
         return 1;
     }
+
     sqlite3_close(db);
 
     return 0;

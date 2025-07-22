@@ -194,8 +194,8 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
     
 /*------------------------------------------------------------*/
 
-    free(x_vals_mat);
-    free(y_vals_mat);
+    // free(x_vals_mat);
+    // free(y_vals_mat);
     free(J_vals_mat);
     free(first_Q);
     free(current_Q);

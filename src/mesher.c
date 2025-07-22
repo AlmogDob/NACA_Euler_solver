@@ -375,22 +375,44 @@ void airfoil(double *x_value, double *y_value, double x, int i, int NACA, int i_
     double p = ((NACA % 1000)/100) / (double)10;
     double t = (NACA % 100) / (double)100;
 
+    // dprintINT(NACA);
+    // dprintD(m);
+    // dprintD(p);
+    // dprintD(t);
+
     double y_t = 5 * t * (0.2969 * sqrt(x) - 0.1260 * x - 0.3516 * x * x + 0.2843 * x * x * x - 0.1036 * x * x * x * x);
     double y_c, dy_c__dx;
-    if (x <= p) {
-        y_c      = m / p / p * (2 * p * x - x * x);
-        dy_c__dx = m / p / p * (p - x);
+
+    double x_U;
+    double y_U;
+    double x_L;
+    double y_L;
+    double x_C;
+    double y_C;
+
+    if (p == 0 || m == 0) {
+        x_U = x;
+        y_U = + y_t;
+        x_L = x;
+        y_L = - y_t;
+        x_C = x;
+        y_C = y_c;
     } else {
-        y_c      = m / (1 - p) / (1 - p) * ((1 - 2 * p) + 2 * p * x - x * x);
-        dy_c__dx = 2 * m / (1 - p) / (1 - p) * (p - x);
+        if (x <= p) {
+            y_c      = m / p / p * (2 * p * x - x * x);
+            dy_c__dx = m / p / p * (p - x);
+        } else {
+            y_c      = m / (1 - p) / (1 - p) * ((1 - 2 * p) + 2 * p * x - x * x);
+            dy_c__dx = 2 * m / (1 - p) / (1 - p) * (p - x);
+        }
+        double theta = atan(dy_c__dx);
+        x_U = x - y_t * sin(theta);
+        y_U = y_c + y_t * cos(theta);
+        x_L = x + y_t * sin(theta);
+        y_L = y_c - y_t * cos(theta);
+        x_C = x;
+        y_C = y_c;
     }
-    double theta = atan(dy_c__dx);
-    double x_U = x - y_t * sin(theta);
-    double y_U = y_c + y_t * cos(theta);
-    double x_L = x + y_t * sin(theta);
-    double y_L = y_c - y_t * cos(theta);
-    double x_C = x;
-    double y_C = y_c;
 
     if (i <= i_LE) {
         *x_value = x_L;
