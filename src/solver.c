@@ -1,7 +1,7 @@
 #include "solver.h"
 
 /* return 0 on success */
-int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int ni, int nj, int num_points_on_airfoil, const double Mach_inf, const double angle_of_attack_deg, const double density, const double environment_pressure, const double delta_t, const double Gamma, const double epse, const double max_iteration)
+int solver(const char *output_dir, double ** Q, double *x_vals_mat, double *y_vals_mat, int ni, int nj, int num_points_on_airfoil, const double Mach_inf, const double angle_of_attack_deg, const double density, const double environment_pressure, const double delta_t, const double Gamma, const double epse, const double max_iteration)
 {
     /* declarations */
     char temp_word[MAXWORD];
@@ -185,12 +185,12 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
         advance_Q(next_Q, current_Q, S, J_vals_mat, ni, nj);
         copy_3Dmat_to_3Dmat(current_Q, next_Q, ni, nj);
         
-        if (!(iteration % 500)) {
+        if (!(iteration % 100)) {
             printf("%5d: %0.15f\n", iteration, current_S_norm);
         }
         fprintf(iter_fp, "%5d %f\n", iteration, current_S_norm);
 
-        if (fabs(current_S_norm) / first_S_norm < 1e-4 || current_S_norm == 0 || isnan(current_S_norm)) {
+        if (fabs(current_S_norm) / first_S_norm < 1e-5 || current_S_norm == 0 || isnan(current_S_norm)) {
             printf("%5d: %0.15f\n", iteration, current_S_norm);
             break;
         }
@@ -198,6 +198,7 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
 
     output_solution_solver(output_dir, current_Q, U_mat, V_mat, x_vals_mat, y_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj, i_TEL, i_LE, i_TEU);
     
+    *Q = next_Q;
 /*------------------------------------------------------------*/
 
     // free(x_vals_mat);
@@ -205,7 +206,7 @@ int solver(const char *output_dir, double *x_vals_mat, double *y_vals_mat, int n
     free(J_vals_mat);
     free(first_Q);
     free(current_Q);
-    free(next_Q);
+    // free(next_Q);
     free(S);  
     free(W);  
     free(dxi_dx_mat);

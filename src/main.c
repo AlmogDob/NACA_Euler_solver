@@ -40,7 +40,7 @@ void output_metadata(char *output_dir, Input_param input_param);
 void mat_output_to_file(FILE *fp, double *data, Input_param input_param);
 void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, Input_param input_param);
 sqlite3 *setup_DB(char * db_name);
-int save_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_param input_param);
+int save_to_DB(sqlite3 *db, double *x_mat, double *y_mat, double *Q, Input_param input_param);
 
 int main(int argc, char const *argv[])
 {
@@ -112,20 +112,24 @@ int main(int argc, char const *argv[])
 
     /* solving flow */
     printf("[INFO] solving flow field\n");
-    int solver_rc = solver(output_dir, x_mat, y_mat, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse, input_param.max_iteration);
+    double *Q;
+
+    int solver_rc = solver(output_dir, &Q, x_mat, y_mat, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse, input_param.max_iteration);
     if (solver_rc != 0) {
         fprintf(stderr, "%s:%d: [ERROR] solving the flow\n", __FILE__, __LINE__);
         return 1;
     }
 
     /* setup DB */
+    printf("[INFO] setting up DB\n");
     sqlite3 *db = setup_DB("NACA.db");
     if (!db) {
         return 1;
     }
 
     /* saving to DB */
-    if (save_to_DB(db, x_mat, y_mat, input_param) != SQLITE_OK) {
+    printf("[INFO] saving to DB\n");
+    if (save_to_DB(db, x_mat, y_mat, Q, input_param) != SQLITE_OK) {
         return 1;
     }
 
@@ -426,7 +430,7 @@ sqlite3 *setup_DB(char *db_name)
         return NULL;
     }
 
-    char *sql = "CREATE TABLE IF NOT EXISTS NACA_data(ID INTEGER PRIMARY KEY, NACA INTEGER NOT NULL, ni INTEGER NOT NULL, nj INTEGER NOT NULL, num_points_on_airfoil INTEGER NOT NULL, delta_y REAL NOT NULL, XSF REAL NOT NULL, YSF REAL NOT NULL, r REAL NOT NULL, omega REAL NOT NULL, x_mat BLOB, y_mat BLOB)";
+    char *sql = "CREATE TABLE IF NOT EXISTS NACA_data(ID INTEGER PRIMARY KEY, NACA INTEGER NOT NULL, ni INTEGER NOT NULL, nj INTEGER NOT NULL, num_points_on_airfoil INTEGER NOT NULL, delta_y REAL NOT NULL, XSF REAL NOT NULL, YSF REAL NOT NULL, r REAL NOT NULL, omega REAL NOT NULL, Mach_inf REAL NOT NULL, angle_of_attack_deg REAL NOT NULL, density REAL NOT NULL, environment_pressure REAL NOT NULL, delta_t REAL NOT NULL, Gamma REAL NOT NULL, epse REAL NOT NULL, x_mat BLOB, y_mat BLOB, Q BLOB)";
     rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "%s:%d: [ERROR] cannot exec command: %s\n", __FILE__, __LINE__, sqlite3_errmsg(db));
@@ -440,14 +444,14 @@ sqlite3 *setup_DB(char *db_name)
 
 /* saving input param mesh and solution to the DB and deleting if there are duplicates;
 returning the error return code. */
-int save_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_param input_param)
+int save_to_DB(sqlite3 *db, double *x_mat, double *y_mat, double *Q, Input_param input_param)
 {
     /* saving to DB */
     char temp_sql[MAXWORD];
     char *err_msg = 0;
 
     strcpy(temp_sql, "");
-    sprintf(temp_sql, "insert into NACA_data(NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, x_mat, y_mat) values(%d, %d, %d, %d, %f, %f, %f, %f, %f, ?, ?);", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega);
+    sprintf(temp_sql, "insert into NACA_data(NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, delta_t, Gamma, epse, x_mat, y_mat, Q) values(%d, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, ?, ?, ?);", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse);
     sqlite3_stmt *statement_pointer;
     int rc = sqlite3_prepare_v2(db, temp_sql, -1, &statement_pointer, 0);
     if (rc != SQLITE_OK) {
@@ -466,22 +470,27 @@ int save_to_DB(sqlite3 *db, double *x_mat, double *y_mat, Input_param input_para
         fprintf(stderr, "%s:%d: [ERROR] failed to bind y values\n", __FILE__, __LINE__);
         return SQLITE_ERROR;
     }
+    rc = sqlite3_bind_blob(statement_pointer, 3, Q, 4 * input_param.ni * input_param.nj * sizeof(double), SQLITE_STATIC);
+    if (rc != SQLITE_OK) {
+        fprintf(stderr, "%s:%d: [ERROR] failed to bind Q values\n", __FILE__, __LINE__);
+        return SQLITE_ERROR;
+    }
 
     /* executing statement */
     rc = sqlite3_step(statement_pointer);
     if (rc != SQLITE_DONE) {
-        fprintf(stderr, "%s:%d: [ERROR] failed to step the statement of x and y mat\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s:%d: [ERROR] failed to step the statement of x and y and Q mat\n", __FILE__, __LINE__);
         return SQLITE_ERROR;
     }
     rc = sqlite3_finalize(statement_pointer);
     if (rc != SQLITE_OK) {
-        fprintf(stderr, "%s:%d: [ERROR] failed to finalize the statement of x and y mat\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s:%d: [ERROR] failed to finalize the statement of x and y and Q mat\n", __FILE__, __LINE__);
         return SQLITE_ERROR;
     }
 
     /* deleting duplicates */
     strcpy(temp_sql, "");
-    sprintf(temp_sql, "DELETE FROM NACA_data WHERE ID NOT IN (SELECT MIN(ID) FROM NACA_data GROUP BY NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega);");
+    sprintf(temp_sql, "DELETE FROM NACA_data WHERE ID NOT IN (SELECT MIN(ID) FROM NACA_data GROUP BY NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, delta_t, Gamma, epse);");
     err_msg = 0;
     rc = sqlite3_exec(db ,temp_sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK) {
