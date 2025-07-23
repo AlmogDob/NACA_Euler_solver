@@ -1,7 +1,7 @@
 #include "solver.h"
 
 /* return 0 on success */
-int solver(const char *output_dir, double ** Q, double *x_vals_mat, double *y_vals_mat, int ni, int nj, int num_points_on_airfoil, const double Mach_inf, const double angle_of_attack_deg, const double density, const double environment_pressure, const double delta_t, const double Gamma, const double epse, const double max_iteration)
+int solver(const char *output_dir, double **rho_2Dmat, double **u_2Dmat, double **v_2Dmat, double **e_2Dmat, double *x_vals_mat, double *y_vals_mat, int ni, int nj, int num_points_on_airfoil, const double Mach_inf, const double angle_of_attack_deg, const double density, const double environment_pressure, const double delta_t, const double Gamma, const double epse, const double max_iteration)
 {
     /* declarations */
     char temp_word[MAXWORD];
@@ -198,7 +198,21 @@ int solver(const char *output_dir, double ** Q, double *x_vals_mat, double *y_va
 
     output_solution_solver(output_dir, current_Q, U_mat, V_mat, x_vals_mat, y_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj, i_TEL, i_LE, i_TEU);
     
-    *Q = next_Q;
+    /* preparing matrixes for export */
+    for (int i = 0; i < ni; i++) {
+        for (int j = 0; j < nj; j++) {
+            dxi_dx_mat[offset2d_solver(i, j, ni, nj)]  = current_Q[offset3d(i, j, 0, ni, nj)];
+            dxi_dy_mat[offset2d_solver(i, j, ni, nj)]  = current_Q[offset3d(i, j, 1, ni, nj)] / current_Q[offset3d(i, j, 0, ni, nj)];
+            deta_dx_mat[offset2d_solver(i, j, ni, nj)] = current_Q[offset3d(i, j, 2, ni, nj)] / current_Q[offset3d(i, j, 0, ni, nj)];
+            deta_dy_mat[offset2d_solver(i, j, ni, nj)] = current_Q[offset3d(i, j, 3, ni, nj)];
+        }
+    }
+    *rho_2Dmat = dxi_dx_mat;
+    *u_2Dmat   = dxi_dy_mat;
+    *v_2Dmat   = deta_dx_mat;
+    *e_2Dmat   = deta_dy_mat;
+
+
 /*------------------------------------------------------------*/
 
     // free(x_vals_mat);
@@ -206,13 +220,13 @@ int solver(const char *output_dir, double ** Q, double *x_vals_mat, double *y_va
     free(J_vals_mat);
     free(first_Q);
     free(current_Q);
-    // free(next_Q);
+    free(next_Q);
     free(S);  
     free(W);  
-    free(dxi_dx_mat);
-    free(dxi_dy_mat);
-    free(deta_dx_mat);
-    free(deta_dy_mat);
+    // free(dxi_dx_mat);
+    // free(dxi_dy_mat);
+    // free(deta_dx_mat);
+    // free(deta_dy_mat);
     free(s2); 
     free(rspec);
     free(qv); 
@@ -363,14 +377,14 @@ j  - second direction
 k  - third direction
 ni - first direction size
 nj - second direction size */
-int offset3d(int i, int j, int k, int ni, int nj)
-{
-    assert(i < ni);
-    assert(j < nj);
-    assert(k < 4);
+// int offset3d(int i, int j, int k, int ni, int nj)
+// {
+//     assert(i < ni);
+//     assert(j < nj);
+//     assert(k < 4);
 
-    return (k * nj + j) * ni + i;
-}
+//     return (k * nj + j) * ni + i;
+// }
 
 /* printing a 2D matrix (1D array) of values to stdout 
 argument list:
@@ -651,6 +665,11 @@ void matrices_coeffic_and_Jacobian(double *J_vals_mat, double *dxi_dx_mat, doubl
             deta_dy_mat[index] =   J * dx_dxi;
         }
     }
+
+    free(dx_dxi_mat);
+    free(dx_deta_mat);
+    free(dy_dxi_mat);
+    free(dy_deta_mat);
 }
 
 /* initializing the matrices coefficients and jacobian matrixes according to the mesh

@@ -38,7 +38,7 @@ environment_pressure
 101325
 
 delta_t
-8e-5
+5e-5
 
 Gamma
 1.4

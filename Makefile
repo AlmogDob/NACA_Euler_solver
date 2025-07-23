@@ -1,5 +1,5 @@
 CFLAGS = -Wall -Wextra -std=c99 -lm -lsqlite3
-CCHECKS = -fsanitize=address
+CCHECKS = -fsanitize=address -g
 O_FILES_MAIN = ./build/main.o ./build/mesher.o ./build/solver.o
 O_FILES_TEMP = ./build/temp.o ./build/mesher.o ./build/solver.o
 
@@ -27,11 +27,11 @@ build_solver: ./src/solver.c
 	@echo [INFO] building solver
 	@gcc -c ./src/solver.c $(CFLAGS) -o ./build/solver.o
 
-link_main: ./build/mesher.o ./build/main.o
+link_main: $(O_FILES_MAIN)
 	@echo [INFO] linking
 	@gcc $(O_FILES_MAIN) $(CFLAGS) -o ./build/main
 
-debug_main: debug_build_mesher debug_build_main link_main
+debug_main: debug_build_mesher debug_build_main debug_build_solver link_main
 	gdb ./build/main
 
 	@echo
@@ -49,7 +49,11 @@ debug_build_mesher: ./src/mesher.c
 	@echo [INFO] building mesher
 	@gcc -c ./src/mesher.c $(CFLAGS) -ggdb -o ./build/mesher.o
 
-profile_main: profile_build_mesher profile_build_main profile_link_main
+debug_build_solver: ./src/solver.c
+	@echo [INFO] building solver
+	@gcc -c ./src/solver.c $(CFLAGS) -ggdb -o ./build/solver.o
+
+profile_main: profile_build_mesher profile_build_solver profile_build_main profile_link_main
 	./build/main $(IN_FILE) $(OUT_DIR)
 	@echo
 	gprof ./build/main gmon.out | /home/almog/.local/bin/gprof2dot | dot -Tpng -Gdpi=200 -o output.png
@@ -61,9 +65,9 @@ profile_main: profile_build_mesher profile_build_main profile_link_main
 	@echo [INFO] removing build files
 	rm -r $(O_FILES_MAIN)
 
-profile_link_main: ./build/mesher.o ./build/main.o
+profile_link_main: $(O_FILES_MAIN)
 	@echo [INFO] linking
-	@gcc ./build/main.o ./build/mesher.o $(CFLAGS) -p -ggdb -o ./build/main
+	@gcc $(O_FILES_MAIN) $(CFLAGS) -p -ggdb -o ./build/main
 
 profile_build_main: 
 	@echo [INFO] building main
@@ -72,6 +76,10 @@ profile_build_main:
 profile_build_mesher: ./src/mesher.c
 	@echo [INFO] building mesher
 	@gcc -c ./src/mesher.c $(CFLAGS) -p -ggdb -o ./build/mesher.o
+
+profile_build_solver: ./src/solver.c
+	@echo [INFO] building solver
+	@gcc -c ./src/solver.c $(CFLAGS) -p -ggdb -o ./build/solver.o
 
 # valgrind -s --leak-check=full ./build/mesher
 # cloc --exclude-lang=JSON,make .
