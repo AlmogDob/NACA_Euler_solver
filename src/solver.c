@@ -11,8 +11,8 @@ int solver(const char *output_dir, double **rho_2Dmat, double **u_2Dmat, double 
     int i_index, j_index, k_index;
 
     const int i_LE  = (ni-1) / 2;
-    const int i_TEL = i_LE - num_points_on_airfoil / 2 + 1;
-    const int i_TEU = i_LE + num_points_on_airfoil / 2 - 1;
+    const int i_TEL = i_LE - num_points_on_airfoil / 2;
+    const int i_TEU = i_LE + num_points_on_airfoil / 2;
     const int j_TEL = 0;
     const int j_LE  = 0;
     const int j_TEU = 0;

@@ -40,7 +40,7 @@ void output_metadata(char *output_dir, Input_param input_param);
 void mat_output_to_file(FILE *fp, double *data, Input_param input_param);
 void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, Input_param input_param);
 sqlite3 *setup_DB(char * db_name);
-int save_to_DB(sqlite3 *db, double *x_mat, double *y_mat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, Input_param input_param);
+int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, Input_param input_param);
 
 int main(int argc, char const *argv[])
 {
@@ -97,9 +97,9 @@ int main(int argc, char const *argv[])
 
     /* creating mesh */
     printf("[INFO] meshing\n");
-    double *x_mat, *y_mat;
+    double *x_2Dmat, *y_2Dmat;
 
-    int mesh_rc = create_mesh(&x_mat, &y_mat, input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, output_dir);
+    int mesh_rc = create_mesh(&x_2Dmat, &y_2Dmat, input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, output_dir);
     if (mesh_rc != 0) {
         fprintf(stderr, "%s:%d: [ERROR] creating mesh\n", __FILE__, __LINE__);
         return 1;
@@ -107,14 +107,14 @@ int main(int argc, char const *argv[])
 
     /* saving mesh */
     printf("[INFO] saving mesh\n");
-    output_mesh(output_dir, x_mat, y_mat, input_param);
+    output_mesh(output_dir, x_2Dmat, y_2Dmat, input_param);
     output_metadata(output_dir, input_param);
 
     /* solving flow */
     printf("[INFO] solving flow field\n");
     double *rho_2Dmat, *u_2Dmat, *v_2Dmat, *e_2Dmat;
 
-    int solver_rc = solver(output_dir, &rho_2Dmat, &u_2Dmat, &v_2Dmat, &e_2Dmat, x_mat, y_mat, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse, input_param.max_iteration);
+    int solver_rc = solver(output_dir, &rho_2Dmat, &u_2Dmat, &v_2Dmat, &e_2Dmat, x_2Dmat, y_2Dmat, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse, input_param.max_iteration);
     if (solver_rc != 0) {
         fprintf(stderr, "%s:%d: [ERROR] solving the flow\n", __FILE__, __LINE__);
         return 1;
@@ -129,13 +129,13 @@ int main(int argc, char const *argv[])
 
     /* saving to DB */
     printf("[INFO] saving to DB\n");
-    if (save_to_DB(db, x_mat, y_mat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat, input_param) != SQLITE_OK) {
+    if (save_to_DB(db, x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat, input_param) != SQLITE_OK) {
         return 1;
     }
 
     sqlite3_close(db);
-    free(x_mat);
-    free(y_mat);
+    free(x_2Dmat);
+    free(y_2Dmat);
     free(rho_2Dmat);
     free(u_2Dmat);
     free(v_2Dmat);
@@ -450,7 +450,7 @@ sqlite3 *setup_DB(char *db_name)
 
 /* saving input param mesh and solution to the DB and deleting if there are duplicates;
 returning the error return code. */
-int save_to_DB(sqlite3 *db, double *x_mat, double *y_mat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, Input_param input_param)
+int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, Input_param input_param)
 {
     /* saving to DB */
     char temp_sql[MAXWORD];
@@ -466,12 +466,12 @@ int save_to_DB(sqlite3 *db, double *x_mat, double *y_mat, double *rho_2Dmat, dou
     }
     
     /* binding mesh */
-    rc = sqlite3_bind_blob(statement_pointer, 1, x_mat, input_param.ni * input_param.nj * sizeof(double), SQLITE_STATIC);
+    rc = sqlite3_bind_blob(statement_pointer, 1, x_2Dmat, input_param.ni * input_param.nj * sizeof(double), SQLITE_STATIC);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "%s:%d: [ERROR] failed to bind x values\n", __FILE__, __LINE__);
         return SQLITE_ERROR;
     }
-    rc = sqlite3_bind_blob(statement_pointer, 2, y_mat, input_param.ni * input_param.nj * sizeof(double), SQLITE_STATIC);
+    rc = sqlite3_bind_blob(statement_pointer, 2, y_2Dmat, input_param.ni * input_param.nj * sizeof(double), SQLITE_STATIC);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "%s:%d: [ERROR] failed to bind y values\n", __FILE__, __LINE__);
         return SQLITE_ERROR;

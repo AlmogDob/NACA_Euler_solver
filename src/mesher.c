@@ -29,8 +29,8 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
     /*------------------------------------------------------------*/
 
     int i_LE = i_max / 2;
-    int i_TEL = i_LE - num_points_on_airfoil / 2 + 1;
-    int i_TEU = i_LE + num_points_on_airfoil / 2 - 1;
+    int i_TEL = i_LE - num_points_on_airfoil / 2;
+    int i_TEU = i_LE + num_points_on_airfoil / 2;
 
     double delta_x = 1.0/(i_LE - i_TEL);
 

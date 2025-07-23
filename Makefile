@@ -86,7 +86,7 @@ profile_build_solver: ./src/solver.c
 
 ###############################################################
 
-temp: build_mesher build_temp link_temp
+temp: build_mesher build_solver build_temp link_temp
 	@echo
 	./build/temp $(IN_FILE) $(OUT_DIR)
 
@@ -101,6 +101,6 @@ build_temp:
 	@echo [INFO] building temp
 	@gcc -c ./src/temp.c $(CFLAGS) -o ./build/temp.o
 
-link_temp: ./build/mesher.o ./build/temp.o
+link_temp: $(O_FILES_TEMP)
 	@echo [INFO] linking
-	@gcc ./build/temp.o ./build/mesher.o $(CFLAGS) -o ./build/temp
+	@gcc $(O_FILES_TEMP) $(CFLAGS) -o ./build/temp

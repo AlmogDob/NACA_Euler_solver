@@ -1,17 +1,17 @@
 NACA
-5312
+0012
 
 ni
-91
+95
 
 nj
-38
+48
 
 num_points_on_airfoil
 61
 
 delta_y
-0.005
+0.003
 
 XSF
 1.1
@@ -38,7 +38,7 @@ environment_pressure
 101325
 
 delta_t
-5e-5
+1e-5
 
 Gamma
 1.4
@@ -47,4 +47,4 @@ epse
 0.06
 
 max_iteration
-1e5
+3e4
