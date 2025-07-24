@@ -175,7 +175,12 @@ int solver(const char *output_dir, double **rho_2Dmat, double **u_2Dmat, double 
     
     for (int iteration = 0; iteration < max_iteration; iteration++) {
         apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj, i_TEL, i_LE, i_TEU, Gamma);
-        current_S_norm = step_solver(A, B, C, D, current_Q, S, W, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp, rspec, qv, dd, ni, nj, max_ni_nj, Mach_inf, delta_t, Gamma, epse, epsi);
+        double delta_t_fixed = fix_delta_t(current_Q, x_vals_mat, y_vals_mat, ni, nj);
+
+        // dprintD(delta_t_fixed);
+        // return 0;
+
+        current_S_norm = step_solver(A, B, C, D, current_Q, S, W, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, s2, drr, drp, rspec, qv, dd, ni, nj, max_ni_nj, Mach_inf, delta_t_fixed, Gamma, epse, epsi);
         if (max_S_norm < fabs(current_S_norm)) {
             max_S_norm = fabs(current_S_norm);
         }
@@ -1667,4 +1672,50 @@ double step_solver(double *A, double *B, double *C, double *D, double *current_Q
     }
 
     return calculate_S_norm(S, ni, nj);
+}
+
+double fix_delta_t(double *current_Q, double *x_vals_mat, double *y_vals_mat, int ni, int nj)
+{
+    /* CFL_x = u*delta_t/delta_x
+       CFL_y = v*delta_t/delta_y */
+
+    double CFL = 0.9;
+
+    double max_u = 0;
+    double max_v = 0;
+    double min_delta_x = __DBL_MAX__;
+    double min_delta_y = __DBL_MAX__;
+
+    for (int i = 0; i < ni; i++) {
+        for (int j = 0; j < nj; j++) {
+            double u, v;
+            calculate_u_and_v(&u, &v, current_Q, i, j, ni, nj);
+            if (fabs(u) > max_u) max_u = fabs(u);
+            if (fabs(v) > max_v) max_v = fabs(v);
+        }
+    }
+
+    for (int j = 0; j < nj; j++) {
+        for (int i = 0; i < ni-1; i++) {
+            double del_x = fabs(x_vals_mat[offset2d_solver(i+1, j, ni, nj)] - x_vals_mat[offset2d_solver(i, j, ni, nj)]);
+            if (del_x < min_delta_x) min_delta_x = del_x;
+        }
+    }
+    for (int i = 0; i < ni; i++) {
+        for (int j = 0; j < nj-1; j++) {
+            double del_y = fabs(y_vals_mat[offset2d_solver(i, j+1, ni, nj)] - y_vals_mat[offset2d_solver(i, j, ni, nj)]);
+            if (del_y < 1e-4) continue;
+            if (del_y < min_delta_y) min_delta_y = del_y;
+        }
+    }
+
+    // dprintD(max_u);
+    // dprintD(max_v);
+    // dprintD(min_delta_x);
+    // dprintD(min_delta_y);
+
+    double delta_t_x = CFL * min_delta_x / max_u;
+    double delta_t_y = CFL * min_delta_y / max_v;
+
+    return fmin(delta_t_x, delta_t_y);
 }
