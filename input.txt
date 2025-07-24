@@ -29,7 +29,7 @@ Mach_inf
 0.9
 
 angle_of_attack_deg
-0
+2
 
 density
 1.225
