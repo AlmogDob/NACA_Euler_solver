@@ -1,6 +1,8 @@
 #include "mesher.h"
 #include "solver.h"
 #include <sqlite3.h>
+#define MATRIX2D_IMPLEMENTATION
+#include "Matrix2D.h"
 
 typedef struct {
     int NACA;
@@ -40,7 +42,8 @@ void output_metadata(char *output_dir, Input_param input_param);
 void mat_output_to_file(FILE *fp, double *data, Input_param input_param);
 void output_mesh(char *output_dir, double *x_vals_mat, double *y_vals_mat, Input_param input_param);
 sqlite3 *setup_DB(char * db_name);
-int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, Input_param input_param);
+int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, double CL, double CD, Input_param input_param);
+void calc_CL_CD(double *CL, double *CD, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, int ni, int num_points_on_airfoil, double Gamma, double Mach_inf, double rho_inf, double p_inf, double angle_of_attack_deg);
 
 int main(int argc, char const *argv[])
 {
@@ -112,13 +115,16 @@ int main(int argc, char const *argv[])
 
     /* solving flow */
     printf("[INFO] solving flow field\n");
-    double *rho_2Dmat, *u_2Dmat, *v_2Dmat, *e_2Dmat;
+    double *rho_2Dmat, *u_2Dmat, *v_2Dmat, *e_2Dmat, final_S_norm;
 
-    int solver_rc = solver(output_dir, &rho_2Dmat, &u_2Dmat, &v_2Dmat, &e_2Dmat, x_2Dmat, y_2Dmat, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse, input_param.max_iteration);
-    if (solver_rc != 0) {
-        fprintf(stderr, "%s:%d: [ERROR] solving the flow\n", __FILE__, __LINE__);
+    int solver_rc = solver(output_dir, &rho_2Dmat, &u_2Dmat, &v_2Dmat, &e_2Dmat, x_2Dmat, y_2Dmat, &final_S_norm, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse, input_param.max_iteration);
+    if (solver_rc != 0 || isnan(final_S_norm)) {
+        fprintf(stderr, "%s:%d: [ERROR] unable to solve the flow\n", __FILE__, __LINE__);
         return 1;
     }
+
+    double CL, CD;
+    calc_CL_CD(&(CL), &(CD), x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat, input_param.ni, input_param.num_points_on_airfoil, input_param.Gamma, input_param.Mach_inf, input_param.density, input_param.environment_pressure, input_param.angle_of_attack_deg);
 
     /* setup DB */
     printf("[INFO] setting up DB\n");
@@ -128,8 +134,8 @@ int main(int argc, char const *argv[])
     }
 
     /* saving to DB */
-    printf("[INFO] saving to DB\n");
-    if (save_to_DB(db, x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat, input_param) != SQLITE_OK) {
+    printf("[INFO] saving to DB\n\n");
+    if (save_to_DB(db, x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat, CL, CD, input_param) != SQLITE_OK) {
         return 1;
     }
 
@@ -436,7 +442,7 @@ sqlite3 *setup_DB(char *db_name)
         return NULL;
     }
 
-    char *sql = "CREATE TABLE IF NOT EXISTS NACA_data(ID INTEGER PRIMARY KEY, NACA INTEGER NOT NULL, ni INTEGER NOT NULL, nj INTEGER NOT NULL, num_points_on_airfoil INTEGER NOT NULL, delta_y REAL NOT NULL, XSF REAL NOT NULL, YSF REAL NOT NULL, r REAL NOT NULL, omega REAL NOT NULL, Mach_inf REAL NOT NULL, angle_of_attack_deg REAL NOT NULL, density REAL NOT NULL, environment_pressure REAL NOT NULL, delta_t REAL NOT NULL, Gamma REAL NOT NULL, epse REAL NOT NULL, x_2Dmat BLOB, y_2Dmat BLOB, rho_2Dmat BLOB, u_2Dmat BLOB, v_2Dmat BLOB, e_2Dmat BLOB)";
+    char *sql = "CREATE TABLE IF NOT EXISTS NACA_data(ID INTEGER PRIMARY KEY, NACA INTEGER NOT NULL, ni INTEGER NOT NULL, nj INTEGER NOT NULL, num_points_on_airfoil INTEGER NOT NULL, delta_y REAL NOT NULL, XSF REAL NOT NULL, YSF REAL NOT NULL, r REAL NOT NULL, omega REAL NOT NULL, Mach_inf REAL NOT NULL, angle_of_attack_deg REAL NOT NULL, density REAL NOT NULL, environment_pressure REAL NOT NULL, delta_t REAL NOT NULL, Gamma REAL NOT NULL, epse REAL NOT NULL, CL REAL NOT NULL, CD REAL NOT NULL, x_2Dmat BLOB, y_2Dmat BLOB, rho_2Dmat BLOB, u_2Dmat BLOB, v_2Dmat BLOB, e_2Dmat BLOB)";
     rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "%s:%d: [ERROR] cannot exec command: %s\n", __FILE__, __LINE__, sqlite3_errmsg(db));
@@ -450,14 +456,14 @@ sqlite3 *setup_DB(char *db_name)
 
 /* saving input param mesh and solution to the DB and deleting if there are duplicates;
 returning the error return code. */
-int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, Input_param input_param)
+int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, double CL, double CD, Input_param input_param)
 {
     /* saving to DB */
     char temp_sql[MAXWORD];
     char *err_msg = 0;
 
     strcpy(temp_sql, "");
-    sprintf(temp_sql, "insert into NACA_data(NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, delta_t, Gamma, epse, x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat) values(%d, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, ?, ?, ?, ?, ?, ?);", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse);
+    sprintf(temp_sql, "insert into NACA_data(NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, delta_t, Gamma, epse, CL, CD, x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat) values(%d, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, ?, ?, ?, ?, ?, ?);", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse, CL, CD);
     sqlite3_stmt *statement_pointer;
     int rc = sqlite3_prepare_v2(db, temp_sql, -1, &statement_pointer, 0);
     if (rc != SQLITE_OK) {
@@ -511,7 +517,7 @@ int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat,
 
     /* deleting duplicates */
     strcpy(temp_sql, "");
-    sprintf(temp_sql, "DELETE FROM NACA_data WHERE ID NOT IN (SELECT MIN(ID) FROM NACA_data GROUP BY NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, delta_t, Gamma, epse);");
+    sprintf(temp_sql, "DELETE FROM NACA_data WHERE ID NOT IN (SELECT MIN(ID) FROM NACA_data GROUP BY NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, Gamma, epse, CL, CD);");
     err_msg = 0;
     rc = sqlite3_exec(db ,temp_sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK) {
@@ -522,4 +528,81 @@ int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat,
     return rc;
 }
 
+void calc_CL_CD(double *CL, double *CD, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, int ni, int num_points_on_airfoil, double Gamma, double Mach_inf, double rho_inf, double p_inf, double angle_of_attack_deg)
+{
+    double speed_of_sound_inf = sqrt(Gamma * p_inf / rho_inf);
+    double velocity_inf = Mach_inf * speed_of_sound_inf;
+
+    const int i_LE  = (ni-1) / 2;
+    const int i_TEL = i_LE - num_points_on_airfoil / 2;
+    const int i_TEU = i_LE + num_points_on_airfoil / 2;
+    const int num_points_half = num_points_on_airfoil / 2;
+
+    // dprintINT(num_points_half);
+
+    Mat2D airfoil_points = mat2D_alloc(num_points_on_airfoil, 2);
+    Mat2D pressure_on_airfoil = mat2D_alloc(num_points_on_airfoil, 1);
+    Mat2D parallel_to_airfoil_vecs = mat2D_alloc(num_points_on_airfoil, 2);
+    Mat2D normal_to_airfoil_vecs = mat2D_alloc(num_points_on_airfoil, 2);
+    Mat2D force_vecs = mat2D_alloc(num_points_on_airfoil, 2);
+    Mat2D pressure_vecs = mat2D_alloc(num_points_on_airfoil, 1);
+
+    Vec2 tot_force = {0};
+
+    for (int i = i_TEL; i <= i_TEU; i++) {
+        MAT2D_AT(airfoil_points, i-i_TEL, 0) = x_2Dmat[offset2d_solver(i, 0, ni, nj)];
+        MAT2D_AT(airfoil_points, i-i_TEL, 1) = y_2Dmat[offset2d_solver(i, 0, ni, nj)];
+
+        double pressure = calculate_p(e_2Dmat[offset2d_solver(i, 0, ni, nj)], rho_2Dmat[offset2d_solver(i, 0, ni, nj)], u_2Dmat[offset2d_solver(i, 0, ni, nj)], v_2Dmat[offset2d_solver(i, 0, ni, nj)], Gamma);
+        MAT2D_AT(pressure_on_airfoil, i-i_TEL, 0) = pressure;
+    }
+    // MAT2D_PRINT(pressure_on_airfoil);
+
+    /* calculating the parallel vector */
+    for (int i = 1; i < num_points_half+1; i++) {
+        MAT2D_AT(parallel_to_airfoil_vecs, i, 0) = MAT2D_AT(airfoil_points, i-1, 0) - MAT2D_AT(airfoil_points, i, 0);
+        MAT2D_AT(parallel_to_airfoil_vecs, i, 1) = MAT2D_AT(airfoil_points, i-1, 1) - MAT2D_AT(airfoil_points, i, 1);
+    }
+    for (int i = num_points_on_airfoil-1; i >= num_points_on_airfoil - num_points_half; i--) {
+        MAT2D_AT(parallel_to_airfoil_vecs, i, 0) = MAT2D_AT(airfoil_points, i-1, 0) - MAT2D_AT(airfoil_points, i, 0);
+        MAT2D_AT(parallel_to_airfoil_vecs, i, 1) = MAT2D_AT(airfoil_points, i-1, 1) - MAT2D_AT(airfoil_points, i, 1);
+    }
+    // MAT2D_PRINT(parallel_to_airfoil_vecs);
+
+    /* calculating the normal vector */
+    for (int i = 0; i < num_points_on_airfoil; i++) {
+        MAT2D_AT(normal_to_airfoil_vecs, i, 0) = - MAT2D_AT(parallel_to_airfoil_vecs, i, 1);
+        MAT2D_AT(normal_to_airfoil_vecs, i, 1) = + MAT2D_AT(parallel_to_airfoil_vecs, i, 0);
+    }
+    // MAT2D_PRINT(normal_to_airfoil_vecs);
+
+    /* calculating the force */
+    for (int i = 1; i < num_points_on_airfoil; i++) {
+        MAT2D_AT(pressure_vecs, i, 0) = (MAT2D_AT(pressure_on_airfoil, i, 0) + MAT2D_AT(pressure_on_airfoil, i-1, 0)) / 2;
+    }
+    for (int i = 0; i < num_points_on_airfoil; i++) {
+        MAT2D_AT(force_vecs, i, 0) = MAT2D_AT(normal_to_airfoil_vecs, i, 0) * MAT2D_AT(pressure_vecs, i, 0);
+        MAT2D_AT(force_vecs, i, 1) = MAT2D_AT(normal_to_airfoil_vecs, i, 1) * MAT2D_AT(pressure_vecs, i, 0);
+    }
+    // MAT2D_PRINT(pressure_vecs);
+    // MAT2D_PRINT(force_vecs);
+
+    for (int i = 0; i < num_points_on_airfoil; i++) {
+        tot_force.x += MAT2D_AT(force_vecs, i, 0);
+        tot_force.y += MAT2D_AT(force_vecs, i, 1);
+    }
+    // printf("tot force: (%f, %f)\n", tot_force.x, tot_force.y);
+    
+    Vec2 tot_coeff = {.x = tot_force.x / (0.5 * rho_inf * velocity_inf * velocity_inf), .y = tot_force.y / (0.5 * rho_inf * velocity_inf * velocity_inf)}; /* L = 0.5*rho*v^2*c*CL */
+    // printf("tot coeff: (%f, %f)\n", tot_coeff.x, tot_coeff.y);
+    *CL = - tot_coeff.x * sin(angle_of_attack_deg * PI / 180) + tot_coeff.y * cos(angle_of_attack_deg * PI / 180);
+    *CD = + tot_coeff.x * cos(angle_of_attack_deg * PI / 180) + tot_coeff.y * sin(angle_of_attack_deg * PI / 180);
+
+    mat2D_free(airfoil_points);
+    mat2D_free(pressure_on_airfoil);
+    mat2D_free(parallel_to_airfoil_vecs);
+    mat2D_free(normal_to_airfoil_vecs);
+    mat2D_free(force_vecs);
+    mat2D_free(pressure_vecs);
+}
 

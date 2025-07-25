@@ -8,89 +8,24 @@
 #include "Matrix2D.h"
 
 sqlite3 *setup_DB(char *db_name);
-int get_data_from_DB(double **x_2Dmat, double **y_2Dmat, double **rho_2Dmat, double **u_2Dmat, double **v_2Dmat, double **e_2Dmat, int *ni, int *nj, int *num_points_on_airfoil, double *Gamma, double *Mach_inf, double *rho_inf, double *p_inf, int NACA);
+int get_data_from_DB(double **x_2Dmat, double **y_2Dmat, double **rho_2Dmat, double **u_2Dmat, double **v_2Dmat, double **e_2Dmat, int *ni, int *nj, int *num_points_on_airfoil, double *Gamma, double *Mach_inf, double *rho_inf, double *p_inf, double *angle_of_attack_deg, int NACA);
+void calc_CL_CD(double *CL, double *CD, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, int ni, int num_points_on_airfoil, double Gamma, double Mach_inf, double rho_inf, double p_inf, double angle_of_attack_deg);
+
 
 int main()
 {
-    double *x_2Dmat, *y_2Dmat, *rho_2Dmat, *u_2Dmat, *v_2Dmat, *e_2Dmat, Gamma, rho_inf, p_inf, Mach_inf;
+    double *x_2Dmat, *y_2Dmat, *rho_2Dmat, *u_2Dmat, *v_2Dmat, *e_2Dmat, Gamma, rho_inf, p_inf, Mach_inf, angle_of_attack_deg, CL, CD;
     int ni, nj, num_points_on_airfoil;
 
-    get_data_from_DB(&x_2Dmat, &y_2Dmat, &rho_2Dmat, &u_2Dmat, &v_2Dmat, &e_2Dmat, &ni, &nj, &num_points_on_airfoil, &Gamma, &Mach_inf, &rho_inf, &p_inf, 12);
-    dprintINT(ni);
-    dprintINT(nj);
-    dprintINT(num_points_on_airfoil);
+    get_data_from_DB(&x_2Dmat, &y_2Dmat, &rho_2Dmat, &u_2Dmat, &v_2Dmat, &e_2Dmat, &ni, &nj, &num_points_on_airfoil, &Gamma, &Mach_inf, &rho_inf, &p_inf, &angle_of_attack_deg, 12);
+    // dprintINT(ni);
+    // dprintINT(nj);
+    // dprintINT(num_points_on_airfoil);
 
-    double speed_of_sound_inf = sqrt(Gamma * p_inf / rho_inf);
+    calc_CL_CD(&CL, &CD, x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat, ni, num_points_on_airfoil, Gamma, Mach_inf, rho_inf, p_inf, angle_of_attack_deg);
 
-    double velocity_inf = Mach_inf * speed_of_sound_inf;
+    printf("CL=%g, CD=%g\n", CL, CD);
 
-    const int i_LE  = (ni-1) / 2;
-    const int i_TEL = i_LE - num_points_on_airfoil / 2;
-    const int i_TEU = i_LE + num_points_on_airfoil / 2;
-
-    Mat2D airfoil_points = mat2D_alloc(num_points_on_airfoil, 2);
-    Mat2D parallel_to_airfoil_vecs = mat2D_alloc(num_points_on_airfoil-1, 2);
-    Mat2D normal_to_airfoil_vecs = mat2D_alloc(num_points_on_airfoil-1, 2);
-    Mat2D force_vecs = mat2D_alloc(num_points_on_airfoil-1, 2);
-    Vec2 tot_force = {0};
-
-    for (int i = i_TEL; i <= i_TEU; i++) {
-        MAT2D_AT(airfoil_points, i-i_TEL, 0) = x_2Dmat[offset2d_solver(i, 0, ni, nj)];
-        MAT2D_AT(airfoil_points, i-i_TEL, 1) = y_2Dmat[offset2d_solver(i, 0, ni, nj)];
-    }
-    // MAT2D_PRINT(airfoil_points);
-
-    /* calculating the parallel vector */
-    for (int i = i_TEL; i < i_LE; i++) {
-        MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL, 0) = MAT2D_AT(airfoil_points, i-i_TEL+1, 0) - MAT2D_AT(airfoil_points, i-i_TEL, 0);
-        MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL, 1) = MAT2D_AT(airfoil_points, i-i_TEL+1, 1) - MAT2D_AT(airfoil_points, i-i_TEL, 1);
-    }
-    for (int i = i_TEU; i > i_LE; i--) {
-        MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL-1, 0) = MAT2D_AT(airfoil_points, i-i_TEL, 0) - MAT2D_AT(airfoil_points, i-i_TEL-1, 0);
-        MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL-1, 1) = MAT2D_AT(airfoil_points, i-i_TEL, 1) - MAT2D_AT(airfoil_points, i-i_TEL-1, 1);
-    }
-    for (int i = 0; i < num_points_on_airfoil-1; i++) {
-        /* normalizing the vector */
-        double size = sqrt(MAT2D_AT(parallel_to_airfoil_vecs, i, 0) * MAT2D_AT(parallel_to_airfoil_vecs, i, 0) + MAT2D_AT(parallel_to_airfoil_vecs, i, 1) * MAT2D_AT(parallel_to_airfoil_vecs, i, 1));
-        MAT2D_AT(parallel_to_airfoil_vecs, i, 0) /= size;
-        MAT2D_AT(parallel_to_airfoil_vecs, i, 1) /= size;
-
-        /* calculating the normal vector */
-        MAT2D_AT(normal_to_airfoil_vecs, i, 0) = - MAT2D_AT(parallel_to_airfoil_vecs, i, 1);
-        MAT2D_AT(normal_to_airfoil_vecs, i, 1) = MAT2D_AT(parallel_to_airfoil_vecs, i, 0);
-
-    }
-    /* calculating the force */
-    for (int i = i_TEL; i < i_LE; i++) {
-        double size = sqrt(MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL, 0) * MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL, 0) + MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL, 1) * MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL, 1));
-
-        double pressure = calculate_p(e_2Dmat[offset2d_solver(i, 0, ni, nj)], rho_2Dmat[offset2d_solver(i, 0, ni, nj)], u_2Dmat[offset2d_solver(i, 0, ni, nj)], v_2Dmat[offset2d_solver(i, 0, ni, nj)], Gamma);
-        double force_size = pressure * size;
-        // dprintD(force_size);
-        MAT2D_AT(force_vecs, i-i_TEL, 0) = MAT2D_AT(normal_to_airfoil_vecs, i-i_TEL, 0) * force_size;
-        MAT2D_AT(force_vecs, i-i_TEL, 1) = MAT2D_AT(normal_to_airfoil_vecs, i-i_TEL, 1) * force_size;
-    }
-    for (int i = i_TEU; i > i_LE; i--) {
-        double size = sqrt(MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL-1, 0) * MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL-1, 0) + MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL-1, 1) * MAT2D_AT(parallel_to_airfoil_vecs, i-i_TEL-1, 1));
-
-        double pressure = calculate_p(e_2Dmat[offset2d_solver(i, 0, ni, nj)], rho_2Dmat[offset2d_solver(i, 0, ni, nj)], u_2Dmat[offset2d_solver(i, 0, ni, nj)], v_2Dmat[offset2d_solver(i, 0, ni, nj)], Gamma);
-        double force_size = pressure * size;
-        // dprintD(force_size);
-        MAT2D_AT(force_vecs, i-i_TEL-1, 0) = MAT2D_AT(normal_to_airfoil_vecs, i-i_TEL-1, 0) * force_size;
-        MAT2D_AT(force_vecs, i-i_TEL-1, 1) = MAT2D_AT(normal_to_airfoil_vecs, i-i_TEL-1, 1) * force_size;
-    }
-    // MAT2D_PRINT(parallel_to_airfoil_vecs);
-    // MAT2D_PRINT(normal_to_airfoil_vecs);
-    // MAT2D_PRINT(force_vecs);
-
-    for (int i = 0; i < num_points_on_airfoil-1; i++) {
-        tot_force.x += MAT2D_AT(force_vecs, i, 0);
-        tot_force.y += MAT2D_AT(force_vecs, i, 1);
-    }
-    printf("tot force: (%f, %f)\n", tot_force.x, tot_force.y);
-    
-    Vec2 tot_coeff = {.x = tot_force.x / (0.5 * rho_inf * velocity_inf * velocity_inf), .y = tot_force.y / (0.5 * rho_inf * velocity_inf * velocity_inf)}; /* L = 0.5*rho*v^2*c*CL */
-    printf("tot coeff: (%f, %f)\n", tot_coeff.x, tot_coeff.y);
 
     return 0;
 }
@@ -109,14 +44,14 @@ sqlite3 *setup_DB(char *db_name)
 }
 
 /* returns zero on success */
-int get_data_from_DB(double **x_2Dmat, double **y_2Dmat, double **rho_2Dmat, double **u_2Dmat, double **v_2Dmat, double **e_2Dmat, int *ni, int *nj, int *num_points_on_airfoil, double *Gamma, double *Mach_inf, double *rho_inf, double *p_inf, int NACA)
+int get_data_from_DB(double **x_2Dmat, double **y_2Dmat, double **rho_2Dmat, double **u_2Dmat, double **v_2Dmat, double **e_2Dmat, int *ni, int *nj, int *num_points_on_airfoil, double *Gamma, double *Mach_inf, double *rho_inf, double *p_inf, double *angle_of_attack_deg, int NACA)
 {
     sqlite3 *db = setup_DB("NACA.db");
     if (!db) {
         return 1;
     }
     char temp_sql[MAXWORD];
-    sprintf(temp_sql, "select ni, nj, num_points_on_airfoil, Gamma, Mach_inf, density, environment_pressure, x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat from NACA_data where NACA = %d;", NACA);
+    sprintf(temp_sql, "select ni, nj, num_points_on_airfoil, Gamma, Mach_inf, density, environment_pressure, x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat, angle_of_attack_deg from NACA_data where NACA = %d;", NACA);
     sqlite3_stmt *statement_pointer;
     int rc = sqlite3_prepare_v2(db, temp_sql, -1, &statement_pointer, 0);
     if (rc != SQLITE_OK) {
@@ -214,8 +149,80 @@ int get_data_from_DB(double **x_2Dmat, double **y_2Dmat, double **rho_2Dmat, dou
         return 1;
     }
     memcpy(*e_2Dmat, sqlite3_column_blob(statement_pointer,12), *ni * *nj * sizeof(double));
+    *angle_of_attack_deg = sqlite3_column_double(statement_pointer, 13);
 
     // mat_print(*x_2Dmat, *ni-1, *nj-1);
 
     return 0;
 }
+
+void calc_CL_CD(double *CL, double *CD, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat, double *u_2Dmat, double *v_2Dmat, double *e_2Dmat, int ni, int num_points_on_airfoil, double Gamma, double Mach_inf, double rho_inf, double p_inf, double angle_of_attack_deg)
+{
+    double speed_of_sound_inf = sqrt(Gamma * p_inf / rho_inf);
+    double velocity_inf = Mach_inf * speed_of_sound_inf;
+
+    const int i_LE  = (ni-1) / 2;
+    const int i_TEL = i_LE - num_points_on_airfoil / 2;
+    const int i_TEU = i_LE + num_points_on_airfoil / 2;
+    const int num_points_half = num_points_on_airfoil / 2;
+
+    // dprintINT(num_points_half);
+
+    Mat2D airfoil_points = mat2D_alloc(num_points_on_airfoil, 2);
+    Mat2D pressure_on_airfoil = mat2D_alloc(num_points_on_airfoil, 1);
+    Mat2D parallel_to_airfoil_vecs = mat2D_alloc(num_points_on_airfoil, 2);
+    Mat2D normal_to_airfoil_vecs = mat2D_alloc(num_points_on_airfoil, 2);
+    Mat2D force_vecs = mat2D_alloc(num_points_on_airfoil, 2);
+    Mat2D pressure_vecs = mat2D_alloc(num_points_on_airfoil, 1);
+    Vec2 tot_force = {0};
+
+    for (int i = i_TEL; i <= i_TEU; i++) {
+        MAT2D_AT(airfoil_points, i-i_TEL, 0) = x_2Dmat[offset2d_solver(i, 0, ni, nj)];
+        MAT2D_AT(airfoil_points, i-i_TEL, 1) = y_2Dmat[offset2d_solver(i, 0, ni, nj)];
+
+        double pressure = calculate_p(e_2Dmat[offset2d_solver(i, 0, ni, nj)], rho_2Dmat[offset2d_solver(i, 0, ni, nj)], u_2Dmat[offset2d_solver(i, 0, ni, nj)], v_2Dmat[offset2d_solver(i, 0, ni, nj)], Gamma);
+        MAT2D_AT(pressure_on_airfoil, i-i_TEL, 0) = pressure;
+    }
+    // MAT2D_PRINT(pressure_on_airfoil);
+
+    /* calculating the parallel vector */
+    for (int i = 1; i < num_points_half+1; i++) {
+        MAT2D_AT(parallel_to_airfoil_vecs, i, 0) = MAT2D_AT(airfoil_points, i-1, 0) - MAT2D_AT(airfoil_points, i, 0);
+        MAT2D_AT(parallel_to_airfoil_vecs, i, 1) = MAT2D_AT(airfoil_points, i-1, 1) - MAT2D_AT(airfoil_points, i, 1);
+    }
+    for (int i = num_points_on_airfoil-1; i >= num_points_on_airfoil - num_points_half; i--) {
+        MAT2D_AT(parallel_to_airfoil_vecs, i, 0) = MAT2D_AT(airfoil_points, i-1, 0) - MAT2D_AT(airfoil_points, i, 0);
+        MAT2D_AT(parallel_to_airfoil_vecs, i, 1) = MAT2D_AT(airfoil_points, i-1, 1) - MAT2D_AT(airfoil_points, i, 1);
+    }
+    // MAT2D_PRINT(parallel_to_airfoil_vecs);
+
+    /* calculating the normal vector */
+    for (int i = 0; i < num_points_on_airfoil; i++) {
+        MAT2D_AT(normal_to_airfoil_vecs, i, 0) = - MAT2D_AT(parallel_to_airfoil_vecs, i, 1);
+        MAT2D_AT(normal_to_airfoil_vecs, i, 1) = + MAT2D_AT(parallel_to_airfoil_vecs, i, 0);
+    }
+    // MAT2D_PRINT(normal_to_airfoil_vecs);
+
+    /* calculating the force */
+    for (int i = 1; i < num_points_on_airfoil; i++) {
+        MAT2D_AT(pressure_vecs, i, 0) = (MAT2D_AT(pressure_on_airfoil, i, 0) + MAT2D_AT(pressure_on_airfoil, i-1, 0)) / 2;
+    }
+    for (int i = 0; i < num_points_on_airfoil; i++) {
+        MAT2D_AT(force_vecs, i, 0) = MAT2D_AT(normal_to_airfoil_vecs, i, 0) * MAT2D_AT(pressure_vecs, i, 0);
+        MAT2D_AT(force_vecs, i, 1) = MAT2D_AT(normal_to_airfoil_vecs, i, 1) * MAT2D_AT(pressure_vecs, i, 0);
+    }
+    // MAT2D_PRINT(pressure_vecs);
+    // MAT2D_PRINT(force_vecs);
+
+    for (int i = 0; i < num_points_on_airfoil; i++) {
+        tot_force.x += MAT2D_AT(force_vecs, i, 0);
+        tot_force.y += MAT2D_AT(force_vecs, i, 1);
+    }
+    // printf("tot force: (%f, %f)\n", tot_force.x, tot_force.y);
+    
+    Vec2 tot_coeff = {.x = tot_force.x / (0.5 * rho_inf * velocity_inf * velocity_inf), .y = tot_force.y / (0.5 * rho_inf * velocity_inf * velocity_inf)}; /* L = 0.5*rho*v^2*c*CL */
+    // printf("tot coeff: (%f, %f)\n", tot_coeff.x, tot_coeff.y);
+    *CL = - tot_coeff.x * sin(angle_of_attack_deg * PI / 180) + tot_coeff.y * cos(angle_of_attack_deg * PI / 180);
+    *CD = + tot_coeff.x * cos(angle_of_attack_deg * PI / 180) + tot_coeff.y * sin(angle_of_attack_deg * PI / 180);
+}
+

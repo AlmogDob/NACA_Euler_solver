@@ -163,7 +163,7 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
     copy_mat(y_vals_mat_current, y_vals_mat_init, i_max, j_max);
     copy_mat(y_vals_mat_next, y_vals_mat_init, i_max, j_max);
 
-    for (i_index = 0; i_index < 1e5; i_index++) {
+    for (i_index = 0; i_index < 5e5; i_index++) {
         result = step(Cx_vals_mat, Cy_vals_mat, fx_vals_mat, fy_vals_mat, x_vals_mat_current, x_vals_mat_next, y_vals_mat_current, y_vals_mat_next, alpha_vals_mat, phi_vals_mat, beta_vals_mat, gama_vals_mat, psi_vals_mat, A, B, C, D, temp_row, i_max, i_min, j_max, j_min, r, omega);
         if (i_index == 0) {
             first_result = result;

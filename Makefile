@@ -1,10 +1,10 @@
-CFLAGS = -Wall -Wextra -std=c99 -lm -lsqlite3
+CFLAGS = -Wall -Wextra -std=c99 -lm -lsqlite3 -O3
 CCHECKS = -fsanitize=address -g
 O_FILES_MAIN = ./build/main.o ./build/mesher.o ./build/solver.o
 O_FILES_TEMP = ./build/temp.o ./build/mesher.o ./build/solver.o
 
 # IN_FILE=mesher_input.txt OUT_DIR=./results make main
-main: build_mesher build_solver build_main link_main
+main: build_and_link_main
 	@echo
 	./build/main $(IN_FILE) $(OUT_DIR)
 
@@ -30,6 +30,14 @@ build_solver: ./src/solver.c
 link_main: $(O_FILES_MAIN)
 	@echo [INFO] linking
 	@gcc $(O_FILES_MAIN) $(CFLAGS) -o ./build/main
+
+build_and_link_main: build_mesher build_solver build_main link_main
+
+clean_main:
+	@echo
+	@echo [INFO] removing build files
+	rm -r $(O_FILES_MAIN) ./build/main
+
 
 debug_main: debug_build_mesher debug_build_main debug_build_solver link_main
 	gdb ./build/main
@@ -104,3 +112,26 @@ build_temp:
 link_temp: $(O_FILES_TEMP)
 	@echo [INFO] linking
 	@gcc $(O_FILES_TEMP) $(CFLAGS) -o ./build/temp
+
+##########################################################
+automat: build_automat
+	./build/automat
+
+	@echo
+	@echo [INFO] removing build files
+	rm -r ./build/automat
+
+	@echo
+	@echo [INFO] done
+
+build_automat: ./src/automat.c
+	@echo [INFO] building automat
+	@gcc ./src/automat.c $(CFLAGS) -o ./build/automat
+
+run_automat:
+	@echo
+	@./src/automat
+
+clean_automat:
+	@echo
+	rm ./build/automat

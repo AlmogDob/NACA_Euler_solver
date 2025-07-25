@@ -33,7 +33,7 @@
     #define dprintD(expr) printf(#expr " = %g\n", expr)
 #endif
 
-int solver(const char *output_dir, double **rho_2Dmat, double **u_2Dmat, double **v_2Dmat, double **e_2Dmat, double *x_vals_mat, double *y_vals_mat, int ni, int nj, int num_points_on_airfoil, const double Mach_inf, const double angle_of_attack_deg, const double density, const double environment_pressure, const double delta_t, const double Gamma, const double epse, const double max_iteration);
+int solver(const char *output_dir, double **rho_2Dmat, double **u_2Dmat, double **v_2Dmat, double **e_2Dmat, double *x_vals_mat, double *y_vals_mat, double *final_S_norm, int ni, int nj, int num_points_on_airfoil, const double Mach_inf, const double angle_of_attack_deg, const double density, const double environment_pressure, const double delta_t, const double Gamma, const double epse, const double max_iteration);
 void read_mat_from_file(FILE *fp, double *des, int ni, int nj);
 void output_solution_solver(const char *output_dir, double *current_Q, double *U_mat, double *V_mat, double *x_vals_mat, double *y_vals_mat, double *dxi_dx_mat, double *dxi_dy_mat, double *deta_dx_mat, double *deta_dy_mat, int ni, int nj, int i_TEL, int i_LE, int i_TEU);
 // int offset2d_solver(int i, int j, int ni, int nj);

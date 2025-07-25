@@ -1,7 +1,7 @@
 #include "solver.h"
 
 /* return 0 on success */
-int solver(const char *output_dir, double **rho_2Dmat, double **u_2Dmat, double **v_2Dmat, double **e_2Dmat, double *x_vals_mat, double *y_vals_mat, int ni, int nj, int num_points_on_airfoil, const double Mach_inf, const double angle_of_attack_deg, const double density, const double environment_pressure, const double delta_t, const double Gamma, const double epse, const double max_iteration)
+int solver(const char *output_dir, double **rho_2Dmat, double **u_2Dmat, double **v_2Dmat, double **e_2Dmat, double *x_vals_mat, double *y_vals_mat, double *final_S_norm, int ni, int nj, int num_points_on_airfoil, const double Mach_inf, const double angle_of_attack_deg, const double density, const double environment_pressure, const double delta_t, const double Gamma, const double epse, const double max_iteration)
 {
     /* declarations */
     char temp_word[MAXWORD];
@@ -175,8 +175,9 @@ int solver(const char *output_dir, double **rho_2Dmat, double **u_2Dmat, double 
     
     for (int iteration = 0; iteration < max_iteration; iteration++) {
         apply_BC(current_Q, J_vals_mat, dxi_dx_mat, dxi_dy_mat, deta_dx_mat, deta_dy_mat, ni, nj, i_TEL, i_LE, i_TEU, Gamma);
-        double delta_t_fixed = fix_delta_t(current_Q, x_vals_mat, y_vals_mat, ni, nj);
 
+        double delta_t_fixed = delta_t;
+        // double delta_t_fixed = 5 * fix_delta_t(current_Q, x_vals_mat, y_vals_mat, ni, nj);
         // dprintD(delta_t_fixed);
         // return 0;
 
@@ -197,6 +198,7 @@ int solver(const char *output_dir, double **rho_2Dmat, double **u_2Dmat, double 
 
         if (fabs(current_S_norm) / first_S_norm < 1e-5 || current_S_norm == 0 || isnan(current_S_norm)) {
             printf("%5d: %0.15f\n", iteration, current_S_norm);
+            *final_S_norm = current_S_norm;
             break;
         }
     }
