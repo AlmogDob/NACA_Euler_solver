@@ -38,38 +38,47 @@ int main()
     fprintf(fp, "make build_and_link_main\n");
 
     /* creating input files and commands */
-    double alphas[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    // int NACAs[] = {5410, 12, 20};
+    int NACAs[] = {10, 1410, 2410, 3410, 4410};
+    // double Mach_infs[] = {0.6, 0.7, 0.8, 0.9, 1};
+    // double Mach_infs[] = {1.1, 1.2 ,1.3, 1.4, 1.5};
+    double Mach_infs[] = {0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2 ,1.3, 1.4, 1.5};
 
-    for (int index1 = -11; index1 <= 11; index1++) {
-        // printf("%d\n", index1);
-        int NACA = 3312;
-        int ni = 95;
-        int nj = 48;
-        int num_points_on_airfoil = 61;
-        double delta_y = 0.003;
-        double XSF = 1.1;
-        double YSF = 1.1;
-        double r = 0.001;
-        double omega = 0.1;
-        double Mach_inf = 0.9;
-        double angle_of_attack_deg = index1;
-        double density = 1.225;
-        double environment_pressure = 101325;
-        double delta_t = 1e-6;
-        double Gamma = 1.4;
-        double epse = 0.06;
-        int max_iteration = 1e5;
 
-        strncpy(temp_input, parent_dir, BUFSIZ);
-        strncat(temp_input, "/input", BUFSIZ/2);
-        sprintf(temp1, "%d.txt", output_counter++);
-        strncat(temp_input, temp1, BUFSIZ/2);
-        create_input_file(temp_input, NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, delta_t, Gamma, epse, max_iteration);
+    for (int index3 = 0; index3 < 10; index3++) {
+        for (int index2 = 0; index2 < 3; index2++) {
+            for (int index1 = -11; index1 <= 11; index1++) {
+                // printf("%d\n", index1);
+                int NACA = NACAs[index2];
+                int ni = 95;
+                int nj = 48;
+                int num_points_on_airfoil = 61;
+                double delta_y = 0.003;
+                double XSF = 1.1;
+                double YSF = 1.1;
+                double r = 0.001;
+                double omega = 0.1;
+                double Mach_inf = Mach_infs[index3];
+                double angle_of_attack_deg = index1;
+                double density = 1.225;
+                double environment_pressure = 101325;
+                double delta_t = 1e-5;
+                double Gamma = 1.4;
+                double epse = 0.06;
+                int max_iteration = 5e4;
 
-        strncpy(temp_dir, parent_dir, BUFSIZ);
-        strncat(temp_dir, "/results", BUFSIZ/2);
-        
-        print_command_to_file(fp, "./build/main", temp_input, temp_dir, NULL);
+                strncpy(temp_input, parent_dir, BUFSIZ);
+                strncat(temp_input, "/input", BUFSIZ/2);
+                sprintf(temp1, "%d.txt", output_counter++);
+                strncat(temp_input, temp1, BUFSIZ/2);
+                create_input_file(temp_input, NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, delta_t, Gamma, epse, max_iteration);
+
+                strncpy(temp_dir, parent_dir, BUFSIZ);
+                strncat(temp_dir, "/results", BUFSIZ/2);
+                
+                print_command_to_file(fp, "./build/main", temp_input, temp_dir, NULL);
+            }
+        }
     }
     
 

@@ -3,14 +3,15 @@ clc; clear;
 db_file = 'NACA.db';
 db = sqlread(sqlite(db_file),'NACA_data');
 
-wanted_NACA = 2330;
+wanted_NACA = 0012;
 ID = find(db.NACA == wanted_NACA);
+% ID = 5;
 if isempty(ID)
     error('No NACA=%d in Data Base', wanted_NACA);
 end
 
-x_array = typecast(db.x_mat{ID},'double');
-y_array = typecast(db.y_mat{ID},'double');
+x_array = typecast(db.x_2Dmat{ID},'double');
+y_array = typecast(db.y_2Dmat{ID},'double');
 ni = db.ni(ID);
 nj = db.nj(ID);
 
@@ -24,8 +25,8 @@ for i = 1:nj
 end
 y;
 
+figure
 hold all
-
 plot(x(:,end), y(:,end),'-','Color',"#7E2F8E")
 plot(x(:,1), y(:,1),'-m')
 plot(x(end,:), y(end,:),'-r')

@@ -1,6 +1,6 @@
 clc; clear; close all
 
-NACA = '4710';
+NACA = '9410';
 num_of_points = 100;
 
 % ========================
@@ -23,19 +23,26 @@ for i = 0:num_of_points-1
     x(i+1)= delta_x * i;
     y_t(i+1) = 5 * t * (0.2969 * sqrt(x(i+1)) - 0.1260 * x(i+1) - 0.3516 * x(i+1)^2 + 0.2843 * x(i+1)^3 - 0.1036 * x(i+1)^4);
     
-    if x(i+1) <= p
-        y_c(i+1)      = m / p^2 * (2 * p * x(i+1) - x(i+1)^2);
-        dy_c__dx(i+1) = m / p^2 * (p - x(i+1));
-    else
-        y_c(i+1)      = m / (1 - p)^2 * ((1 - 2 * p) + 2 * p * x(i+1) - x(i+1)^2);
-        dy_c__dx(i+1) = 2 * m / (1 - p)^2 * (p - x(i+1));
+    if p == 0 || m == 0
+        x_U(i+1) = x(i+1);
+        x_L(i+1) = x(i+1);
+        y_U(i+1) = y_t(i+1);
+        y_L(i+1) = -y_t(i+1);
+    else 
+        if x(i+1) <= p
+            y_c(i+1)      = m / p^2 * (2 * p * x(i+1) - x(i+1)^2);
+            dy_c__dx(i+1) = m / p^2 * (p - x(i+1));
+        else
+            y_c(i+1)      = m / (1 - p)^2 * ((1 - 2 * p) + 2 * p * x(i+1) - x(i+1)^2);
+            dy_c__dx(i+1) = 2 * m / (1 - p)^2 * (p - x(i+1));
+        end
+        theta(i+1) = atan(dy_c__dx(i+1));
+    
+        x_U(i+1) = x(i+1) - y_t(i+1) * sin(theta(i+1));
+        x_L(i+1) = x(i+1) + y_t(i+1) * sin(theta(i+1));
+        y_U(i+1) = y_c(i+1) + y_t(i+1) * cos(theta(i+1));
+        y_L(i+1) = y_c(i+1) - y_t(i+1) * cos(theta(i+1));
     end
-    theta(i+1) = atan(dy_c__dx(i+1));
-
-    x_U(i+1) = x(i+1) - y_t(i+1) * sin(theta(i+1));
-    x_L(i+1) = x(i+1) + y_t(i+1) * sin(theta(i+1));
-    y_U(i+1) = y_c(i+1) + y_t(i+1) * cos(theta(i+1));
-    y_L(i+1) = y_c(i+1) - y_t(i+1) * cos(theta(i+1));
 end
 
 fig1 = figure(1);

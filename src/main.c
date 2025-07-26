@@ -517,7 +517,7 @@ int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat,
 
     /* deleting duplicates */
     strcpy(temp_sql, "");
-    sprintf(temp_sql, "DELETE FROM NACA_data WHERE ID NOT IN (SELECT MIN(ID) FROM NACA_data GROUP BY NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, Gamma, epse, CL, CD);");
+    sprintf(temp_sql, "DELETE FROM NACA_data WHERE ID NOT IN (SELECT MIN(ID) FROM NACA_data GROUP BY NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, Gamma, epse);");
     err_msg = 0;
     rc = sqlite3_exec(db ,temp_sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK) {

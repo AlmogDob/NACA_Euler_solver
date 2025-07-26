@@ -1,75 +1,85 @@
 clc; clear; close all;
-ni = 91;
-nj = 38;
-gamma = 1.4;
 
-formatSpec = '%f';
+db_file = 'NACA.db';
+db = sqlread(sqlite(db_file),'NACA_data');
 
-fileID = fopen("results/Q0_mat.txt", "r");
-Q0s = fscanf(fileID,formatSpec);
-fclose(fileID);
-for i = 1:nj
-    Q0(i,:) = Q0s(1+(i-1)*ni:ni+(i-1)*ni);
+% wanted_NACA = 0012;
+% ID = find(db.NACA == wanted_NACA);
+% ID = ID(end);
+ID = 3;
+if isempty(ID)
+    error('No NACA=%d in Data Base', wanted_NACA);
 end
-Q0;
 
-fileID = fopen("results/Q1_mat.txt", "r");
-Q1s = fscanf(fileID,formatSpec);
-fclose(fileID);
+x_array = typecast(db.x_2Dmat{ID},'double');
+y_array = typecast(db.y_2Dmat{ID},'double');
+rhos    = typecast(db.rho_2Dmat{ID},'double');
+us      = typecast(db.u_2Dmat{ID},'double');
+vs      = typecast(db.v_2Dmat{ID},'double');
+es      = typecast(db.e_2Dmat{ID},'double');
+
+ni = db.ni(ID);
+nj = db.nj(ID);
+num_points_on_airfoil = db.num_points_on_airfoil(ID);
+gamma     = db.Gamma(ID);
+rho_inf   = db.delta_y(ID);
+Mach_inf  = db.Mach_inf(ID);
+p_inf     = db.environment_pressure(ID);
+a_inf     = sqrt(gamma * p_inf / rho_inf);
+u_inf     = Mach_inf * a_inf;
+alpha_deg = db.angle_of_attack_deg(ID);
+NACA      = db.NACA(ID);
+
 for i = 1:nj
-    Q1(i,:) = Q1s(1+(i-1)*ni:ni+(i-1)*ni);
+    rho(i,:) = rhos(1+(i-1)*ni:ni+(i-1)*ni);
 end
-Q1;
+rho;
 
-fileID = fopen("results/Q2_mat.txt", "r");
-Q2s = fscanf(fileID,formatSpec);
-fclose(fileID);
 for i = 1:nj
-    Q2(i,:) = Q2s(1+(i-1)*ni:ni+(i-1)*ni);
+    u(i,:) = us(1+(i-1)*ni:ni+(i-1)*ni);
 end
-Q2;
+u;
 
-fileID = fopen("results/Q3_mat.txt", "r");
-Q3s = fscanf(fileID,formatSpec);
-fclose(fileID);
 for i = 1:nj
-    Q3(i,:) = Q3s(1+(i-1)*ni:ni+(i-1)*ni);
+    v(i,:) = vs(1+(i-1)*ni:ni+(i-1)*ni);
 end
-Q3;
+v;
 
-fileID = fopen("results/x_mat.txt", "r");
-xs = fscanf(fileID,formatSpec);
-fclose(fileID);
 for i = 1:nj
-   x(i,:) = xs(1+(i-1)*ni:ni+(i-1)*ni);
+    e(i,:) = es(1+(i-1)*ni:ni+(i-1)*ni);
+end
+e;
+
+for i = 1:nj
+    x(i,:) = x_array(1+(i-1)*ni:ni+(i-1)*ni);
 end
 x;
 
-fileID = fopen("results/y_mat.txt", "r");
-ys = fscanf(fileID,formatSpec);
-fclose(fileID);
 for i = 1:nj
-    y(i,:) = ys(1+(i-1)*ni:ni+(i-1)*ni);
+    y(i,:) = y_array(1+(i-1)*ni:ni+(i-1)*ni);
 end
 y;
 
-u = Q1./Q0;
-v = Q2./Q0;
-p = (gamma - 1).*(Q3 - 0.5.*Q0.*(u.^2 + v.^2));
-a = sqrt(gamma.*p./Q0);
+p  = (gamma - 1).*(e - 0.5.*rho.*(u.^2 + v.^2));
+a = sqrt(gamma.*p./rho);
 M = sqrt(u.^2 + v.^2)./a;
+p0 = (p) .* (1 + (gamma-1) / 2 * M.^2).^(gamma / (gamma-1));
 
+figure
 hold all
-contourf(x, y, M, 300, "LineStyle","none");
+contourf(x, y, M, 300, 'LineStyle','none');
 colorbar;
-colormap("turbo");
-
-% quiver(x, y, u, v, "Color", "#FFFFFF");
-
+colormap('turbo');
+axis equal
+title(sprintf('NACA: %04d,  Mach: %.2f,  $\\alpha=%.2f^\\circ$', NACA, Mach_inf, alpha_deg),'Interpreter','latex')
 % 
-% plot(x(:,end), y(:,end),'-','Color',"#7E2F8E")
-% plot(x(:,1), y(:,1),'-m')
-% plot(x(end,:), y(end,:),'-r')
+% factor = 0.0001;
+% quiver(x, y, u*factor, v*factor,"off", "Color", "#000000");
+
+
+% plot(x(:,end), y(:,end),'-k')%,'Color',"#7E2F8E")
+% plot(x(:,1), y(:,1),'-k')
+% plot(x(end,:), y(end,:),'-k')
 % plot(x(1,:), y(1,:),'-k')
 % 
 % for i = 2:(length(x(1,:))-1)
