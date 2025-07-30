@@ -1,11 +1,12 @@
 # NACA Euler solver
-Database generator for flow over NACA 4 digit airfoils - compressible Euler equations (wikipedia link: https://en.wikipedia.org/wiki/Euler_equations_(fluid_dynamics)#Euler_equations).
+Database generator for flow over NACA 4-digit airfoils - compressible Euler equations (wikipedia link: https://en.wikipedia.org/wiki/Euler_equations_(fluid_dynamics)#Euler_equations).
 
 **_NOTE:_** The database is not in the repo since it is too big.
+
 **_NOTE:_** I wrote the solver and the mesher in a CFD class, and the reports I wrote are included.
 
 ### Build and Run
-To build the program, run this commend:
+To build the program, run this command:
 ``` shell
 IN_FILE=input.txt OUT_DIR=./results make main
 ```
@@ -62,7 +63,7 @@ For the given mesh above and the following parameters:
 * Gamma - 1.4
 * epse - 0.06
 
-The flow around the airfoil (Mach number) is: ![0012 mesh](./flow%200012%20Mach0.9.png) 
+The flow around the airfoil (Mach number) is:![0012 mesh](./flow%200012%20Mach0.9.png) 
 
 ## Example input file
 ``` shell
@@ -121,7 +122,7 @@ Where
 
 | Parameter | Description |
 | :---: | :---: |
-| NACA | 4 digit NACA airfoil |
+| NACA | 4-digit NACA airfoil |
 | ni | number of points in the i (xi) direction |
 | nj | number of points in the j (eta) direction |
 | num_points_on_airfoil | number of points on the airfoil |
@@ -130,20 +131,21 @@ Where
 | YSF | cell size in the j direction multiplayer |
 | r | parameter for mesh convergence |
 | omega | parameter for mesh convergence |
-| Mach_inf | mach number far away |
+| Mach_inf | Mach number far away |
 | angle_of_attack_deg | angle of attack of the airfoil in degrees |
 | density | air density far away (height) |
 | environment_pressure | air pressure far away (height) |
-| delta_t | time step between two iteration |
+| delta_t | time step between two iterations |
 | Gamma | heat capacity ratio |
 | epse | smoothing coefficient for Beam & Warming method |
-| max_iteration | maximal number of iteration for flow solver |
+| max_iteration | maximal number of iterations for flow solver |
 
-**_NOTE:_** the order does not meters.
-**_NOTE:_** the time step can be bigger than the time step calculated using the CFL number since we seek a steady state solution.
+**_NOTE:_** The order does not matter.
+
+**_NOTE:_** The time step can be bigger than the time step calculated using the CFL number since we seek a steady state solution.
 
 ## Automation - Ubuntu
-In order to automate a lot of runs together you can use the 'automate.c' file
+In order to automate a lot of runs together, you can use the 'automate.c' file.
 
 ### Build and Run
 Run the following command:
@@ -163,6 +165,6 @@ make build_and_link_main
 ./build/main ./auto/input206.txt ./auto/results 
 make clean_main
 ```
-You need to copy all the text in the file and past it in the terminal.
+You need to copy all the text in the file and paste it into the terminal.
 
-**_NOTE:_** This might work on windows but I am not sure.
+**_NOTE:_** This might work on Windows, but I am not sure.
