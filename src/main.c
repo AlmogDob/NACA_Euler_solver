@@ -51,7 +51,7 @@ int main(int argc, char const *argv[])
     char input_file[MAXDIR], output_dir[MAXDIR]; 
 
     if (--argc != 2) {
-        fprintf(stderr, "%s:%d: [ERROR] not right usage\nUsage: main 'input file' 'output directory\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s:%d: [ERROR] not right usage\nUsage: main 'input file' 'output directory'\n", __FILE__, __LINE__);
         return 1;
     }
 

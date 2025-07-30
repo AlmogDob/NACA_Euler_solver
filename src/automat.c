@@ -39,17 +39,17 @@ int main()
 
     /* creating input files and commands */
     // int NACAs[] = {5410, 12, 20};
-    int NACAs[] = {10, 1410, 2410, 3410, 4410};
+    int NACAs[] = {10, 1410, 2410, 3410, 4410, 6410, 7410, 8410, 9410};
     // double Mach_infs[] = {0.6, 0.7, 0.8, 0.9, 1};
     // double Mach_infs[] = {1.1, 1.2 ,1.3, 1.4, 1.5};
-    double Mach_infs[] = {0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2 ,1.3, 1.4, 1.5};
+    double Mach_infs[] = {0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2 ,1.3, 1.4, 1.5};
 
 
-    for (int index3 = 0; index3 < 10; index3++) {
-        for (int index2 = 0; index2 < 3; index2++) {
-            for (int index1 = -11; index1 <= 11; index1++) {
-                // printf("%d\n", index1);
-                int NACA = NACAs[index2];
+    for (int Mach_index = 10; Mach_index < 11; Mach_index++) {
+        for (int NACA_index = 0; NACA_index < 9; NACA_index++) {
+            for (int alphas = -11; alphas <= 11; alphas++) {
+                // printf("%d\n", alphas);
+                int NACA = NACAs[NACA_index];
                 int ni = 95;
                 int nj = 48;
                 int num_points_on_airfoil = 61;
@@ -58,8 +58,8 @@ int main()
                 double YSF = 1.1;
                 double r = 0.001;
                 double omega = 0.1;
-                double Mach_inf = Mach_infs[index3];
-                double angle_of_attack_deg = index1;
+                double Mach_inf = Mach_infs[Mach_index];
+                double angle_of_attack_deg = alphas;
                 double density = 1.225;
                 double environment_pressure = 101325;
                 double delta_t = 1e-5;

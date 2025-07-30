@@ -118,7 +118,7 @@ automat: build_automat
 	./build/automat
 
 	@echo
-	@echo [INFO] removing build files
+	@echo [INFO] removing automat
 	rm -r ./build/automat
 
 	@echo
