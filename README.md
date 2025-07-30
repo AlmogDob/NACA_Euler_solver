@@ -1,19 +1,19 @@
 # NACA Euler solver
 Database generator for flow over NACA 4 digit airfoils - compressible Euler equations (wikipedia link: https://en.wikipedia.org/wiki/Euler_equations_(fluid_dynamics)#Euler_equations).
 
-* The database is not in the repo since it is too big.
-* I wrote the solver and the mesher in a CFD class, and the reports I wrote are included.
+**_NOTE:_** The database is not in the repo since it is too big.
+**_NOTE:_** I wrote the solver and the mesher in a CFD class, and the reports I wrote are included.
 
-### Build
+### Build and Run
 To build the program, run this commend:
-``` bash
+``` shell
 IN_FILE=input.txt OUT_DIR=./results make main
 ```
 * input.txt - input file
 * ./results - output directory
 
 ### Usage
-``` bash
+``` shell
 main 'input file' 'output directory'
 ```
 
@@ -24,7 +24,7 @@ The only dependencies are:
 * SQLite3
 
 ### Installing SQLite3 on Ubuntu
-``` bash
+``` shell
 sudo apt install sqlite3
 ```
 
@@ -62,10 +62,10 @@ For the given mesh above and the following parameters:
 * Gamma - 1.4
 * epse - 0.06
 
-The flow around the airfoil is: ![0012 mesh](./flow%200012%20Mach0.9.png) 
+The flow around the airfoil (Mach number) is: ![0012 mesh](./flow%200012%20Mach0.9.png) 
 
 ## Example input file
-``` bash
+``` shell
 NACA
 0012
 
@@ -139,5 +139,30 @@ Where
 | epse | smoothing coefficient for Beam & Warming method |
 | max_iteration | maximal number of iteration for flow solver |
 
-* the order does not meters.
-* the time step can be bigger than the time step calculated using the CFL number since we seek a steady state solution.
+**_NOTE:_** the order does not meters.
+**_NOTE:_** the time step can be bigger than the time step calculated using the CFL number since we seek a steady state solution.
+
+## Automation - Ubuntu
+In order to automate a lot of runs together you can use the 'automate.c' file
+
+### Build and Run
+Run the following command:
+``` shell
+make automat
+```
+This will create the folder 'auto' in which there will be a lot of 'input.txt' files and one 'command_to_run' in which the will be something like so:
+``` shell
+make build_and_link_main
+./build/main ./auto/input0.txt ./auto/results 
+./build/main ./auto/input1.txt ./auto/results 
+./build/main ./auto/input2.txt ./auto/results 
+./build/main ./auto/input3.txt ./auto/results 
+.
+.
+.
+./build/main ./auto/input206.txt ./auto/results 
+make clean_main
+```
+You need to copy all the text in the file and past it in the terminal.
+
+**_NOTE:_** This might work on windows but I am not sure.
