@@ -52,6 +52,9 @@ int j_LE  = 0;
 int j_TEL = 0;
 int j_TEU = 0;
 ```
+* LE - Leading Edge
+* TEL - Traling Edge Lower
+* TEU - Traling Edge Upper
 
 ## Solver explanation
 For the given mesh above and the following parameters:
