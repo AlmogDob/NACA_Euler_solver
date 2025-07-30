@@ -41,7 +41,9 @@ For example, the mesh for
 * r - 0.001
 * omega - 0.1
 
-will be: ![0012 mesh](./readme%20images/0012%20mesh.png) 
+will be:
+
+![0012 mesh](./readme%20images/0012%20mesh.png) 
 
 ### Airfoil position (indexes)
 ``` C
@@ -66,7 +68,9 @@ For the given mesh above and the following parameters:
 * Gamma - 1.4
 * epse - 0.06
 
-The flow around the airfoil (Mach number) is:![0012 mesh](./readme%20images/flow%200012%20Mach0.9.png) 
+The flow around the airfoil (Mach number) is:
+
+![0012 mesh](./readme%20images/flow%200012%20Mach0.9.png) 
 
 ## Example input file
 ``` shell
