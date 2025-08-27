@@ -4,7 +4,7 @@ db_file = 'NACA.db';
 db_table = sqlread(sqlite(db_file),'NACA_data');
 unique(fetch(sqlite(db_file),'SELECT NACA FROM NACA_data;'))
 
-NACA = '54112';
+NACA = '3312';
 alpha_deg = 0;
 
 sql_temp = sprintf('SELECT * FROM NACA_data where NACA = %s and angle_of_attack_deg = %f and delta_t <= 1e-5;', NACA, alpha_deg)
@@ -16,7 +16,6 @@ fig1 = figure('Name','1','Position',[300,150,900,600]);
 font_size = 16;
 what_to_show = 'M';
 for ID = IDs'
-% for ID = 18
     ID;
     [ni, nj, num_points_on_airfoil, gamma, rho_inf, Mach_inf, p_inf, a_inf, u_inf, alpha_deg, NACA, x, y, rho, u, v, e, p, a, M, p0, CL, CD] = read_matrixes_from_DB(ID, db_table);
     clf(fig1);
@@ -28,7 +27,7 @@ for ID = IDs'
         cbar.Label.String = 'M';
         colormap('turbo');
         axis equal
-        title(sprintf('NACA: %s,  Mach: %.2f,  $\\alpha=%.2f^\\circ$', NACA, Mach_inf, alpha_deg), 'FontSize',font_size,'Interpreter','latex')
+        title(sprintf('NACA: %s\nMach: %.2f,  $\\alpha=%.2f^\\circ$', NACA, Mach_inf, alpha_deg), 'FontSize',font_size,'Interpreter','latex')
     elseif what_to_show == 'p0'
         contourf(x, y, p0, 200, 'LineStyle','none');
         hold on
@@ -37,7 +36,14 @@ for ID = IDs'
         colormap('turbo');
         axis equal
         title(sprintf('NACA: %s,  Mach: %.2f,  $\\alpha=%.2f^\\circ$', NACA, Mach_inf, alpha_deg), 'FontSize',font_size,'Interpreter','latex')
-    
+    elseif what_to_show == 'p'
+        contourf(x, y, p, 200, 'LineStyle','none');
+        hold on
+        cbar = colorbar;
+        cbar.Label.String = 'p';
+        colormap('turbo');
+        axis equal
+        title(sprintf('NACA: %s,  Mach: %.2f,  $\\alpha=%.2f^\\circ$', NACA, Mach_inf, alpha_deg), 'FontSize',font_size,'Interpreter','latex')
     end
     
     

@@ -2,15 +2,15 @@ clc; clear; close all;
 
 db_file = 'NACA.db';
 db_table = sqlread(sqlite(db_file),'NACA_data');
+NACA_list = unique(fetch(sqlite(db_file),'SELECT NACA FROM NACA_data;'));
 
-NACA = '44012';
-Mach = 0.8;
+NACA = '3312';
+Mach = 1.2;
 
-unique(fetch(sqlite(db_file),'SELECT NACA FROM NACA_data;'))
 sql_temp = sprintf('SELECT * FROM NACA_data where NACA = %s and Mach_inf = %f and delta_t <= 1e-5;', NACA, Mach)
 results = fetch(sqlite(db_file),sql_temp);
 % results = fetch(sqlite(db_file),sprintf('SELECT * FROM NACA_data where NACA = %s and Mach_inf = %f and delta_t <= 1e-5;', NACA, Mach));
-% results = fetch(sqlite(db_file),sprintf('SELECT * FROM NACA_data where NACA = %s and Mach_inf = %f and delta_t = 1e-5 and angle_of_attack_deg = 7;', NACA, Mach));
+% results = fetch(sqlite(db_file),sprintf('SELECT * FROM NACA_data where NACA = %s and Mach_inf = %f and delta_t = 1e-5 and angle_of_attack_deg = 0;', NACA, Mach));
 results = sortrows(results, 'angle_of_attack_deg');
 IDs = results.ID;
 
