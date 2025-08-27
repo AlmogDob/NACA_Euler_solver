@@ -1,29 +1,29 @@
 NACA
-0012
+54112
 
 ni
-95
+135
 
 nj
-48
+88
 
 num_points_on_airfoil
-61
+71
 
 delta_y
 0.003
 
 XSF
-1.1
+1.05
 
 YSF
-1.1
+1.05
 
 r
-0.001
+0.003
 
 omega
-0.1
+1.5
 
 Mach_inf
 0.9
@@ -47,4 +47,4 @@ epse
 0.06
 
 max_iteration
-4e4
+3e4

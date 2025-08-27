@@ -129,7 +129,7 @@ Where
 
 | Parameter | Description |
 | :---: | :---: |
-| NACA | 4-digit NACA airfoil |
+| NACA | 4/5-digit NACA airfoil |
 | ni | number of points in the i (xi) direction |
 | nj | number of points in the j (eta) direction |
 | num_points_on_airfoil | number of points on the airfoil |

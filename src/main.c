@@ -5,7 +5,7 @@
 #include "Matrix2D.h"
 
 typedef struct {
-    int NACA;
+    char NACA[256];
     int ni;
     int nj;
     int num_points_on_airfoil;
@@ -71,7 +71,7 @@ int main(int argc, char const *argv[])
     read_input(input_file, &input_param);
 
     /* Checking that I got the right input */
-    dprintINT(input_param.NACA);
+    dprintSTRING(input_param.NACA);
     dprintINT(input_param.ni);
     dprintINT(input_param.nj);
     dprintINT(input_param.num_points_on_airfoil);
@@ -201,7 +201,7 @@ int create_output_dir(char *output_dir, Input_param input_param)
         fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
         return 1;
     }
-    sprintf(temp_word, "/NACA%d", input_param.NACA);
+    sprintf(temp_word, "/NACA%s", input_param.NACA);
     strcat(output_dir, temp_word);
     if (create_empty_dir(output_dir) != 0) {
         fprintf(stderr, "%s:%d: [ERROR] creating ouput directory\n", __FILE__, __LINE__);
@@ -317,7 +317,7 @@ void read_input(char *input_file, Input_param *input_param)
     /* Seting the input variables according to the input file */
     while(fscanf(fp, "%s", current_word) != EOF) {  
         if (!strcmp(current_word, "NACA")) {
-            fscanf(fp, "%d", &(input_param->NACA));
+            fscanf(fp, "%s", input_param->NACA);
         } else if (!strcmp(current_word, "ni")) {
             fscanf(fp, "%d", &(input_param->ni));
         } else if (!strcmp(current_word, "nj")) {
@@ -392,7 +392,7 @@ void output_metadata(char *output_dir, Input_param input_param)
     }
 
     fprintf(metadata_file, "NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, delta_t, Gamma, epse\n");
-    fprintf(metadata_file, "%d, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse);
+    fprintf(metadata_file, "%s, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse);
 
     fclose(metadata_file);
 }
@@ -442,7 +442,9 @@ sqlite3 *setup_DB(char *db_name)
         return NULL;
     }
 
-    char *sql = "CREATE TABLE IF NOT EXISTS NACA_data(ID INTEGER PRIMARY KEY, NACA INTEGER NOT NULL, ni INTEGER NOT NULL, nj INTEGER NOT NULL, num_points_on_airfoil INTEGER NOT NULL, delta_y REAL NOT NULL, XSF REAL NOT NULL, YSF REAL NOT NULL, r REAL NOT NULL, omega REAL NOT NULL, Mach_inf REAL NOT NULL, angle_of_attack_deg REAL NOT NULL, density REAL NOT NULL, environment_pressure REAL NOT NULL, delta_t REAL NOT NULL, Gamma REAL NOT NULL, epse REAL NOT NULL, CL REAL NOT NULL, CD REAL NOT NULL, x_2Dmat BLOB, y_2Dmat BLOB, rho_2Dmat BLOB, u_2Dmat BLOB, v_2Dmat BLOB, e_2Dmat BLOB)";
+    sqlite3_busy_timeout(db, 5e3);
+
+    char *sql = "CREATE TABLE IF NOT EXISTS NACA_data(ID INTEGER PRIMARY KEY, NACA TEXT NOT NULL, ni INTEGER NOT NULL, nj INTEGER NOT NULL, num_points_on_airfoil INTEGER NOT NULL, delta_y REAL NOT NULL, XSF REAL NOT NULL, YSF REAL NOT NULL, r REAL NOT NULL, omega REAL NOT NULL, Mach_inf REAL NOT NULL, angle_of_attack_deg REAL NOT NULL, density REAL NOT NULL, environment_pressure REAL NOT NULL, delta_t REAL NOT NULL, Gamma REAL NOT NULL, epse REAL NOT NULL, CL REAL NOT NULL, CD REAL NOT NULL, x_2Dmat BLOB, y_2Dmat BLOB, rho_2Dmat BLOB, u_2Dmat BLOB, v_2Dmat BLOB, e_2Dmat BLOB)";
     rc = sqlite3_exec(db, sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK) {
         fprintf(stderr, "%s:%d: [ERROR] cannot exec command: %s\n", __FILE__, __LINE__, sqlite3_errmsg(db));
@@ -463,7 +465,7 @@ int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat,
     char *err_msg = 0;
 
     strcpy(temp_sql, "");
-    sprintf(temp_sql, "insert into NACA_data(NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, delta_t, Gamma, epse, CL, CD, x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat) values(%d, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, ?, ?, ?, ?, ?, ?);", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse, CL, CD);
+    sprintf(temp_sql, "insert into NACA_data(NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, delta_t, Gamma, epse, CL, CD, x_2Dmat, y_2Dmat, rho_2Dmat, u_2Dmat, v_2Dmat, e_2Dmat) values(%s, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, ?, ?, ?, ?, ?, ?);", input_param.NACA, input_param.ni, input_param.nj, input_param.num_points_on_airfoil, input_param.delta_y, input_param.XSF, input_param.YSF, input_param.r, input_param.omega, input_param.Mach_inf, input_param.angle_of_attack_deg, input_param.density, input_param.environment_pressure, input_param.delta_t, input_param.Gamma, input_param.epse, CL, CD);
     sqlite3_stmt *statement_pointer;
     int rc = sqlite3_prepare_v2(db, temp_sql, -1, &statement_pointer, 0);
     if (rc != SQLITE_OK) {
@@ -517,7 +519,7 @@ int save_to_DB(sqlite3 *db, double *x_2Dmat, double *y_2Dmat, double *rho_2Dmat,
 
     /* deleting duplicates */
     strcpy(temp_sql, "");
-    sprintf(temp_sql, "DELETE FROM NACA_data WHERE ID NOT IN (SELECT MIN(ID) FROM NACA_data GROUP BY NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, Gamma, epse);");
+    sprintf(temp_sql, "DELETE FROM NACA_data WHERE ID NOT IN (SELECT MIN(ID) FROM NACA_data GROUP BY NACA, ni, nj, num_points_on_airfoil, delta_y, XSF, YSF, r, omega, Mach_inf, angle_of_attack_deg, density, environment_pressure, Gamma, epse, delta_t);");
     err_msg = 0;
     rc = sqlite3_exec(db ,temp_sql, 0, 0, &err_msg);
     if (rc != SQLITE_OK) {

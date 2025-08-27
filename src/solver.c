@@ -192,12 +192,14 @@ int solver(const char *output_dir, double **rho_2Dmat, double **u_2Dmat, double 
         copy_3Dmat_to_3Dmat(current_Q, next_Q, ni, nj);
         
         if (!(iteration % 100)) {
-            printf("%5d: %0.15f\n", iteration, current_S_norm);
+            printf("\r%5d: %13.10f", iteration, current_S_norm);
+            fflush(stdout);
         }
         fprintf(iter_fp, "%5d %f\n", iteration, current_S_norm);
 
         if (fabs(current_S_norm) / first_S_norm < 1e-5 || current_S_norm == 0 || isnan(current_S_norm)) {
-            printf("%5d: %0.15f\n", iteration, current_S_norm);
+            printf("\r%5d: %13.10f\n", iteration, current_S_norm);
+            fflush(stdout);
             *final_S_norm = current_S_norm;
             break;
         }

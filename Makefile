@@ -1,9 +1,9 @@
-CFLAGS = -Wall -Wextra -std=c99 -lm -lsqlite3 -O3
+CFLAGS = -Wall -Wextra -std=c99 -lm -lsqlite3
 CCHECKS = -fsanitize=address -g
 O_FILES_MAIN = ./build/main.o ./build/mesher.o ./build/solver.o
 O_FILES_TEMP = ./build/temp.o ./build/mesher.o ./build/solver.o
 
-# IN_FILE=mesher_input.txt OUT_DIR=./results make main
+# IN_FILE=input.txt OUT_DIR=./results make main
 main: build_and_link_main
 	@echo
 	./build/main $(IN_FILE) $(OUT_DIR)
@@ -135,3 +135,27 @@ run_automat:
 clean_automat:
 	@echo
 	rm ./build/automat
+
+##########################################################
+migrate_NACA_int2str: build_migrate_NACA_int2str
+	@echo
+	./build/migrate_NACA_int2str
+
+	@echo
+	@echo [INFO] removing migrate_NACA_int2str
+	rm -r ./build/migrate_NACA_int2str
+
+	@echo
+	@echo [INFO] done
+
+build_migrate_NACA_int2str: ./src/migrate_NACA_int2str.c
+	@echo [INFO] building migrate_NACA_int2str
+	@gcc ./src/migrate_NACA_int2str.c $(CFLAGS) -o ./build/migrate_NACA_int2str
+
+run_migrate_NACA_int2str:
+	@echo
+	@./src/migrate_NACA_int2str
+
+clean_migrate_NACA_int2str:
+	@echo
+	rm ./build/migrate_NACA_int2str

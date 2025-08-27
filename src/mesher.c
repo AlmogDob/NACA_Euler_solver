@@ -1,7 +1,7 @@
 #include "mesher.h"
 
 /* return 0 on success */
-int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega, char *output_dir)
+int create_mesh(double **x_mat, double **y_mat, char *NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega, char *output_dir)
 {
     double psi_valuse = -1, phi_valuse = -1;
     int i_max = ni-1;
@@ -182,12 +182,15 @@ int create_mesh(double **x_mat, double **y_mat, int NACA, int ni, int nj, int nu
         
         /* printing Lx and Ly */
         if (!((i_index+1) % 1000)) {
-            printf("%4d. Lx_max: %0.10f, Ly_max: %0.10f\n",i_index+1, result.x, result.y);
+            printf("\r%5d. Lx_max: %13.10f, Ly_max: %13.10f",i_index+1, result.x, result.y);
+            fflush(stdout);
         }
         fprintf(Ls_fp, "%g, %g\n", result.x, result.y);
 
         /* checking convergenc */
         if (log10(fabs(first_result.x/result.x)) > 5 && log10(fabs(first_result.y/result.y))) {
+            printf("\r%5d. Lx_max: %13.10f, Ly_max: %13.10f\n",i_index+1, result.x, result.y);
+            fflush(stdout);
             break;
         }
     }
@@ -277,7 +280,7 @@ y_vals_mat - 1D array of the y valuse
 alpha_vals_mat - 1D array for the alpha valus
 beta_vals_mat - 1D array for the beta valus
 gama_vals_mat - 1D array for the gama valus */
-void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, double *phi_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max, int i_min, int j_min, int NACA, double phi_valuse, double psi_valuse)
+void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat, double *beta_vals_mat, double *gama_vals_mat, double *psi_vals_mat, double *phi_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max, int i_min, int j_min, char *NACA, double phi_valuse, double psi_valuse)
 {
     set_grid_boundaries(x_vals_mat, y_vals_mat, i_TEL, i_TEU, i_LE, delta_x, delta_y, XSF, YSF, i_max, j_max, NACA);
     interpulat_mat(x_vals_mat, 'j', i_max, j_max, i_min, j_min);
@@ -289,7 +292,7 @@ void initialize(double *x_vals_mat, double *y_vals_mat, double *alpha_vals_mat, 
 /* set the mash boundaries coorditates 
 argument list: x_vals_mat - 1D array of the x valuse 
 y_vals_mat - 1D array of the y valuse */
-void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max, int NACA)
+void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat, int i_TEL, int i_TEU, int i_LE, double delta_x, double delta_y, double XSF, double YSF, int i_max, int j_max, char *NACA)
 {
     int i_index, i_min = 0, j_index, j_min = 0, index = 0, num_points_befor_circle,
     num_of_outer_segments, num_of_top_outer_segments;
@@ -369,17 +372,50 @@ void set_grid_boundaries(double *x_vals_mat, double *y_vals_mat, int i_TEL, int 
 /* returns the shape of the airfoil as a function of x
 argument list: 
 i - index along the airfoil */
-void airfoil(double *x_value, double *y_value, double x, int i, int NACA, int i_LE)
+void airfoil(double *x_value, double *y_value, double x, int i, char *NACA, int i_LE)
 {
-    double m = ((NACA % 10000)/1000) / (double)100;
-    double p = ((NACA % 1000)/100) / (double)10;
-    double t = (NACA % 100) / (double)100;
+    size_t NACA_len = strlen(NACA);
 
-    // dprintINT(NACA);
-    // dprintD(m);
-    // dprintD(p);
-    // dprintD(t);
+    double m = 0, p = 0;
+    double L = 0, P = 0, S = 0;
+    double t = 0;
 
+    /* parse the NACA string */
+    if (NACA_len == 4) {
+        m = (NACA[0] - '0') / (double)100;
+        p = (NACA[1] - '0') / (double)10;
+        t = ((NACA[2] - '0') * 10 + (NACA[3] - '0')) / (double)100;
+        if ((m == 0 && p != 0) || (m != 0 && p == 0)) {
+            fprintf(stderr, "%s:%d: [ERROR] unsupported NACA: %s (MPxx)\n", __FILE__, __LINE__, NACA);
+            exit(1);
+        }
+        // dprintD(m);
+        // dprintD(p);
+        // dprintD(t);
+    } else if (NACA_len == 5) {
+        L = (NACA[0] - '0');
+        P = (NACA[1] - '0');
+        S = (NACA[2] - '0');
+        t = ((NACA[3] - '0') * 10 + (NACA[4] - '0')) / (double)100;
+        if (L == 0) {
+            fprintf(stderr, "%s:%d: [ERROR] unsupported NACA: %s (LPSxx)!\nL != 0\n", __FILE__, __LINE__, NACA);
+            exit(1);
+        }
+        if (P > 5 || P < 1) {
+            fprintf(stderr, "%s:%d: [ERROR] unsupported NACA: %s (LPSxx)!\n1<= S <=5\n", __FILE__, __LINE__, NACA);
+            exit(1);
+        }
+        if (S != 0 && S != 1) {
+            fprintf(stderr, "%s:%d: [ERROR] unable to create this NACA: %s, S is only 1 of 0\n", __FILE__, __LINE__, NACA);
+            exit(1);
+        }
+    } else if (NACA_len == 6) {
+        fprintf(stderr, "%s:%d: [ERROR] unsupported NACA: %s\nNACA 6 digit not yet implemented\n", __FILE__, __LINE__, NACA);
+        exit(1);
+    }
+
+    /* calc the points */
+    double theta;
     double y_t = 5 * t * (0.2969 * sqrt(x) - 0.1260 * x - 0.3516 * x * x + 0.2843 * x * x * x - 0.1036 * x * x * x * x);
     double y_c, dy_c__dx;
 
@@ -390,29 +426,61 @@ void airfoil(double *x_value, double *y_value, double x, int i, int NACA, int i_
     double x_C;
     double y_C;
 
-    if (p == 0 || m == 0) {
-        x_U = x;
-        y_U = + y_t;
-        x_L = x;
-        y_L = - y_t;
-        x_C = x;
-        y_C = 0;
-    } else {
-        if (x <= p) {
-            y_c      = m / p / p * (2 * p * x - x * x);
-            dy_c__dx = m / p / p * (p - x);
+    if (NACA_len == 4) {
+        if (p == 0 || m == 0) {
+            y_c      = 0;
+            dy_c__dx = 0;
+            // p_U.x = x; p_U.y = + y_t; p_U.z = 0;
+            // p_L.x = x; p_L.y = - y_t; p_L.z = 0;
+            // p_C.x = x; p_C.y = 0    ; p_C.z = 0;
         } else {
-            y_c      = m / (1 - p) / (1 - p) * ((1 - 2 * p) + 2 * p * x - x * x);
-            dy_c__dx = 2 * m / (1 - p) / (1 - p) * (p - x);
+            if (x <= p) {
+                y_c      = m / p / p * (2 * p * x - x * x);
+                dy_c__dx = m / p / p * (p - x);
+            } else {
+                y_c      = m / (1 - p) / (1 - p) * ((1 - 2 * p) + 2 * p * x - x * x);
+                dy_c__dx = 2 * m / (1 - p) / (1 - p) * (p - x);
+            }
         }
-        double theta = atan(dy_c__dx);
-        x_U = x - y_t * sin(theta);
-        y_U = y_c + y_t * cos(theta);
-        x_L = x + y_t * sin(theta);
-        y_L = y_c - y_t * cos(theta);
-        x_C = x;
-        y_C = y_c;
+    } else if (NACA_len == 5) {
+        // double CL_i = 0.15 * L;
+        double x_mc = 0.05 * P;
+        if (S == 0) {
+            double r  = 3.3333 * x_mc * x_mc * x_mc + 0.7 * x_mc * x_mc + 1.1967 * x_mc - 0.0040;
+            double k1 = 1.5149e6 * x_mc * x_mc * x_mc * x_mc - 1.0877e6 * x_mc * x_mc * x_mc + 2.8646e5 * x_mc * x_mc - 3.2968e4 * x_mc + 1.4202e3;
+
+            if (x <= r) {
+                y_c      = k1 / 6.0 * (x * x * x - 3 * r * x * x + r * r * (3 - r) * x);
+                dy_c__dx = k1 / 6.0 * (3 * x * x - 6 * r * x + r * r * (3 - r));
+            } else {
+                y_c      = k1 * r * r * r / 6.0 * (1 - x);
+                dy_c__dx = - k1 * r * r * r / 6.0;
+            }
+        } else if (S == 1) {
+            double r   = 10.6667 * x_mc * x_mc * x_mc - 2 * x_mc * x_mc + 1.7333 * x_mc - 0.0340;
+            double k1  = -2.7973e4 * x_mc * x_mc * x_mc + 1.7973e4 * x_mc * x_mc - 3.8884e3 * x_mc + 289.0760;
+            double k21 = 85.5280 * x_mc * x_mc * x_mc - 34.9828 * x_mc * x_mc + 4.8032 * x_mc - 0.2153;
+
+            if (x <= r) {
+                y_c      = k1 / 6.0 * ((x - r) * (x - r) * (x - r)- k21 * (1 - r) * (1 - r) * (1 - r) * x - r * r * r * x + r * r * r);
+                dy_c__dx = k1 / 6.0 * (3 * (x - r) * (x - r) - k21 * (1 - r) * (1 - r) * (1 - r) - r * r * r);
+            } else {
+                y_c      = k1 / 6.0 * (k21 * (x - r) * (x - r) * (x - r) - k21 * (1 - r) * (1 - r) * (1 - r) * x - r * r * r * x + r * r * r);
+                dy_c__dx = k1 / 6.0 * (3 * k21 * (x - r) * (x - r) - k21 * (1 - r) * (1 - r) * (1 - r) - r * r * r);
+            }
+        }
+        /* scale for different L number. see report */
+        y_c      *= L / 2.0;
+        dy_c__dx *= L / 2.0;
     }
+
+    theta = atan(dy_c__dx);
+    x_U = x - y_t * sin(theta);
+    x_L = x + y_t * sin(theta);
+    y_U = y_c + y_t * cos(theta);
+    y_L = y_c - y_t * cos(theta);
+    x_C = x;
+    y_C = y_c;
 
     if (i <= i_LE) {
         *x_value = x_L;

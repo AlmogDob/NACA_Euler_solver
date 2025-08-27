@@ -16,7 +16,7 @@
 
 int create_empty_dir(char *parent_directory);
 void print_command_to_file(FILE *fp, char *program, ...);
-void create_input_file(char *file_name, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega, double Mach_inf, double angle_of_attack_deg, double density, double environment_pressure, double delta_t, double Gamma, double epse, int max_iteration);
+void create_input_file(char *file_name, char *NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega, double Mach_inf, double angle_of_attack_deg, double density, double environment_pressure, double delta_t, double Gamma, double epse, int max_iteration);
 
 int main()
 {
@@ -39,25 +39,25 @@ int main()
 
     /* creating input files and commands */
     // int NACAs[] = {5410, 12, 20};
-    int NACAs[] = {10, 1410, 2410, 3410, 4410, 6410, 7410, 8410, 9410};
+    char *NACAs[] = {"5512", "4512", "3512", "2512", "1512", "55012", "45012", "35012", "25012", "15012", "55112", "45112", "35112", "25112", "15112"};
     // double Mach_infs[] = {0.6, 0.7, 0.8, 0.9, 1};
     // double Mach_infs[] = {1.1, 1.2 ,1.3, 1.4, 1.5};
-    double Mach_infs[] = {0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2 ,1.3, 1.4, 1.5};
+    double Mach_infs[] = {0.8, 0.9, 1, 1.1, 1.2 ,1.3, 1.4, 1.5};
 
 
-    for (int Mach_index = 10; Mach_index < 11; Mach_index++) {
-        for (int NACA_index = 0; NACA_index < 9; NACA_index++) {
-            for (int alphas = -11; alphas <= 11; alphas++) {
+    for (int Mach_index = 4; Mach_index < 5; Mach_index++) {
+        for (int NACA_index = 5; NACA_index < 7; NACA_index++) {
+            for (int alphas = -8; alphas <= 8; alphas++) {
                 // printf("%d\n", alphas);
-                int NACA = NACAs[NACA_index];
-                int ni = 95;
-                int nj = 48;
-                int num_points_on_airfoil = 61;
+                char *NACA = NACAs[NACA_index];
+                int ni = 135;
+                int nj = 88;
+                int num_points_on_airfoil = 71;
                 double delta_y = 0.003;
-                double XSF = 1.1;
-                double YSF = 1.1;
-                double r = 0.001;
-                double omega = 0.1;
+                double XSF = 1.05;
+                double YSF = 1.05;
+                double r = 0.003;
+                double omega = 1.5;
                 double Mach_inf = Mach_infs[Mach_index];
                 double angle_of_attack_deg = alphas;
                 double density = 1.225;
@@ -65,7 +65,7 @@ int main()
                 double delta_t = 1e-5;
                 double Gamma = 1.4;
                 double epse = 0.06;
-                int max_iteration = 5e4;
+                int max_iteration = 3e4;
 
                 strncpy(temp_input, parent_dir, BUFSIZ);
                 strncat(temp_input, "/input", BUFSIZ/2);
@@ -149,11 +149,11 @@ void print_command_to_file(FILE *fp, char *program, ...)
     fprintf(fp, "\n");
 }
 
-void create_input_file(char *file_name, int NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega, double Mach_inf, double angle_of_attack_deg, double density, double environment_pressure, double delta_t, double Gamma, double epse, int max_iteration)
+void create_input_file(char *file_name, char *NACA, int ni, int nj, int num_points_on_airfoil, double delta_y, double XSF, double YSF, double r, double omega, double Mach_inf, double angle_of_attack_deg, double density, double environment_pressure, double delta_t, double Gamma, double epse, int max_iteration)
 {
     FILE *input_fp = fopen(file_name, "wt");
 
-    dfprintINT(input_fp, NACA);
+    dfprintS(input_fp, NACA);
     dfprintINT(input_fp, ni);
     dfprintINT(input_fp, nj);
     dfprintINT(input_fp, num_points_on_airfoil);

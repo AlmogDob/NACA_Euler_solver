@@ -3,7 +3,7 @@ clc; clear; close all;
 db_file = 'NACA.db';
 db = sqlread(sqlite(db_file),'NACA_data');
 
-results = fetch(sqlite(db_file),'SELECT * FROM NACA_data where NACA = 5410 and Mach_inf = 0.7 and delta_t = 1e-5 and angle_of_attack_deg = 10;');
+results = fetch(sqlite(db_file),'SELECT * FROM NACA_data where NACA = 4410 and Mach_inf = 0.7 and delta_t = 1e-5 and angle_of_attack_deg = 5;');
 results = sortrows(results, 'angle_of_attack_deg');
 ID = results.ID;
 
