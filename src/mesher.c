@@ -402,7 +402,7 @@ void airfoil(double *x_value, double *y_value, double x, int i, char *NACA, int 
             exit(1);
         }
         if (P > 5 || P < 1) {
-            fprintf(stderr, "%s:%d: [ERROR] unsupported NACA: %s (LPSxx)!\n1<= S <=5\n", __FILE__, __LINE__, NACA);
+            fprintf(stderr, "%s:%d: [ERROR] unsupported NACA: %s (LPSxx)!\n1<= P <=5\n", __FILE__, __LINE__, NACA);
             exit(1);
         }
         if (S != 0 && S != 1) {
